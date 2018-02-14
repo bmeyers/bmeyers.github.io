@@ -78,6 +78,7 @@ A = np.c_[xs, np.ones_like(xs)]
 print A
 {% endhighlight %}
 
+{% highlight python%}
     [[ 0.75797312  1.        ]
      [ 0.62779477  1.        ]
      [ 0.46559402  1.        ]
@@ -88,7 +89,7 @@ print A
      [ 0.58865603  1.        ]
      [ 0.52803319  1.        ]
      [ 0.79308442  1.        ]]
-
+{% endhighlight %}
 
 Solve the least squares problem.
 
@@ -244,6 +245,7 @@ np.set_printoptions(precision=2)
 print A
 {% endhighlight %}
 
+{% highlight python%}
     [[  2.49e+00   6.20e+00   1.55e+01]
      [  1.40e+01   1.96e+02   2.75e+03]
      [  9.64e+00   9.29e+01   8.96e+02]
@@ -259,7 +261,7 @@ print A
      [  1.16e+01   1.36e+02   1.58e+03]
      [ -7.53e-01   5.67e-01  -4.27e-01]
      [ -1.36e+00   1.86e+00  -2.53e+00]]
-
+{% endhighlight %}
 
 Then, solve the least squares problem.
 
@@ -269,8 +271,9 @@ p_hat = inv(A.T.dot(A)).dot(A.T).dot(ys_samples)
 print p_hat
 {% endhighlight %}
 
+{% highlight python%}
     [ 0.96  2.88 -0.19]
-
+{% endhighlight %}
 
 Recall, that the actual parameters were $\left[1, 3, -0.2\right]$. Let's compare the results.
 
@@ -333,6 +336,7 @@ A_tilde = np.concatenate([
 print A_tilde
 {% endhighlight %}
 
+{% highlight python%}
     [[  2.49e+00   6.20e+00   1.55e+01   1.00e+00   1.00e+00]
      [  1.40e+01   1.96e+02   2.75e+03   1.00e+00   2.00e+00]
      [  9.64e+00   9.29e+01   8.96e+02   1.00e+00   3.00e+00]
@@ -348,7 +352,7 @@ print A_tilde
      [  1.16e+01   1.36e+02   1.58e+03   1.00e+00   1.30e+01]
      [ -7.53e-01   5.67e-01  -4.27e-01   1.00e+00   1.40e+01]
      [ -1.36e+00   1.86e+00  -2.53e+00   1.00e+00   1.50e+01]]
-
+{% endhighlight %}
 
 The standard least squared estimate:
 
@@ -358,7 +362,9 @@ p_ls = inv(A.T.dot(A)).dot(A.T).dot(ys_od)
 print p_ls
 {% endhighlight %}
 
+{% highlight python%}
     [-3.5   4.51 -0.27]
+{% endhighlight %}
 
 
 The least squared estimate using the noise model:
@@ -369,8 +375,9 @@ p_ls_plus_noise = inv(A_tilde.T.dot(A_tilde)).dot(A_tilde.T).dot(ys_od)
 print p_ls_plus_noise[:3]
 {% endhighlight %}
 
+{% highlight python%}
     [ 1.16  2.86 -0.19]
-
+{% endhighlight %}
 
 And we also recover the estimates of $\alpha$ and $\beta$.
 
@@ -381,9 +388,9 @@ p_ls_plus_noise[3:]
 
 
 
-
+{% highlight python%}
     array([-7.56,  5.57])
-
+{% endhighlight %}
 
 
 So, we can see that the LS estimate that utilizes the noise model does a much better job of estimating the desired parameters. What about the error? Recall the quantity we are trying to minimize is
@@ -409,9 +416,10 @@ print 'Basic LS Error:        {:.3f}'.format(J_ls)
 print 'Noise model LS Error:  {:.3f}'.format(J_ls_plus_noise)
 {% endhighlight %}
 
+{% highlight python%}
     Basic LS Error:        82210.486
     Noise model LS Error:  55722.231
-
+{% endhighlight %}
 
 That's great! By accounting for the error, we drive the cost down by an additional 32%. That certainly seems promising. Now, let's compare to the oracle (the actual function that generated the data).
 
@@ -430,9 +438,10 @@ print 'Basic LS Error:        {:.3f}'.format(err_ls)
 print 'Noise model LS Error:  {:.3f}'.format(err_ls_plus_noise)
 {% endhighlight %}
 
+{% highlight python%}
     Basic LS Error:        120.583
     Noise model LS Error:  8.427
-
+{% endhighlight %}
 
 As expected, the method that correctly models the error gets much closer to the oracle.
 
@@ -469,7 +478,7 @@ np.allclose(pinv(A), inv(A.T.dot(A)).dot(A.T))
 
 
 
-
+{% highlight python%}
     True
-
+{% endhighlight %}
 
