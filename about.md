@@ -8,8 +8,9 @@ Some information about you!
 
 ### More Information
 
-A place to include any other types of information that you'd like to include about yourself.
+Hello! My name is Bennet Meyers and I am interested in machine learning, signal processing, and data mining and their applications in the energy sector. I am particularly interested in developing new analytical tools for processing and gaining insight from solar PV data sets. If you like what you see, feel free to contact me!
 
 ### Contact me
 
-[email@domain.com](mailto:email@domain.com)
+[email](bennetm@stanford.edu)
+[linkedin](https://www.linkedin.com/in/bennetmeyers/)
