@@ -13,4 +13,3 @@ Hello! My name is Bennet Meyers and I am interested in machine learning, signal 
 ### Contact me
 
 [email](bennetm@stanford.edu)
-[linkedin](https://www.linkedin.com/in/bennetmeyers/)
