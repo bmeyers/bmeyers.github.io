@@ -36,9 +36,11 @@ $$
 
 is full rank. For standard linear regression, the vector $x$ would be in $\mathbf{R}^2$ and would represent the slope and intercept parameters. In this context, the matrix $A$ would have the given values for the independent variable in the first column and all ones in the second column, and the vector $y\in\mathbf{R}^m$ would contain the values for the dependent variable. If the error terms, $v_i$, were small, random, and centered around zero (Gaussian white noise), then least squares gives the optimal estimation of x (i.e., minimizes the RMSE):
 
+$$
 \begin{align}
 \hat{p} = \left(A^TA\right)^{-1}A^T y = \underset{p}{\text{argmin}}\left\lVert y - Ap \right\rVert_2^2
 \end{align}
+$$
 
 Let's illustrate this with a quick example.
 
@@ -118,15 +120,19 @@ plt.show()
 
 For this problem, let us assume that the error contains some predictable terms in addition to white noise: a common offset term that is the same for all measurements and a drift term that grows linearly with each subsequent measurement. We model this situation as:
 
+$$
 \begin{align}
 v_i = \alpha + \beta i + w_i
 \end{align}
+$$
 
 We will use least squares to simultaneously the desired vector $x\in\mathbf{R}^n$, the bias term $\alpha\in\mathbf{R}$, and the drift term $\beta\in\mathbf{R}$. We begin by substituting our error model into the measurement model:
 
+$$
 \begin{align}
 y_i = a_i^T x + \alpha + \beta i + w_i,\quad\quad i=1,\ldots,m,
 \end{align}
+$$
 
 This induces the matrix equation:
 
@@ -153,11 +159,13 @@ $$
 
 We can now use least squares to find all parameters:
 
+$$
 \begin{align}
 \hat{\tilde{x}} = \left[\begin{matrix}
 \hat{x} \\ \hat{\alpha} \\ \hat{\beta}
 \end{matrix}\right] = \left(\tilde{A}^T\tilde{A}\right)^{-1}\tilde{A}^T y
 \end{align}
+$$
 
 Alright! We have a closed-form expression to estimate $x$, $\alpha$, and $\beta$. A couple caveats: for this to work, the following much be true:
 
@@ -199,13 +207,16 @@ _ = plt.title('Noisy Samples of a Cubic Function')
 
 A cubic function with no offset is fully defined by three scalar coefficients:
 
+$$
 \begin{align}
 y = \mathcal{P}_3(x) &= p_1 x + p_2 x^2 + p_3 x^3 \\
 &= \left[\begin{matrix} x & x^2 & x^3 \end{matrix}\right] \left[\begin{matrix} p_1 \\ p_2 \\ p_3 \end{matrix}\right]
 \end{align}
+$$
 
-So, given a set of noisy measurement, $\left\{\left(x_1, y_1\right),\left(x_2, y_2\right),\ldots, \left(x_m, y_m\right)\right\}$, we find $p=\left[\begin{matrix}p_1 & p_2 & p_3\end{matrix}\right]^T$ as follows. First, construct the following matrix:
+So, given a set of noisy measurements, $$\left\{\left(x_1, y_1\right),\left(x_2, y_2\right),\ldots, \left(x_m, y_m\right)\right\}$$, we find $p=\left[\begin{matrix}p_1 & p_2 & p_3\end{matrix}\right]^T$ as follows. First, construct the following matrix:
 
+$$
 \begin{align}
 A &= \left[\begin{matrix}
 x_1 & x_1^2 & x_1^3 \\
@@ -214,12 +225,15 @@ x_2 & x_2^2 & x_2^3 \\
 x_m & x_m^2 & x_m^3 \\
 \end{matrix}\right]
 \end{align}
+$$
 
 Then, find $\hat{p}$ as before:
 
+$$
 \begin{align}
 \hat{p} = \left(A^TA\right)^{-1}A^T y = \underset{p}{\text{argmin}}\left\lVert y - Ap \right\rVert_2^2
 \end{align}
+$$
 
 Let's try it out on this cubic-fitting problem! As before, start by constructing matrix $A$.
 
@@ -374,9 +388,11 @@ p_ls_plus_noise[3:]
 
 So, we can see that the LS estimate that utilizes the noise model does a much better job of estimating the desired parameters. What about the error? Recall the quantity we are trying to minimize is
 
+$$
 \begin{align}
 \left\lVert y- Ap\right\rVert_2^2
 \end{align}
+$$
 
 So, there are really two errors to consider:
 
