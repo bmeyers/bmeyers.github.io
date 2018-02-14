@@ -14,6 +14,14 @@ _This is based on a problem presented in EE 263 Linear Dynamical Systems at Stan
 
 ### Background: Least Squares
 
+$$
+    \begin{matrix}
+    1 & x & x^2 \\
+    1 & y & y^2 \\
+    1 & z & z^2 \\
+    \end{matrix}
+$$
+
 Suppose that we are trying to estimate a vector $p\in\mathbf{R}^{n}$. We take $m$ scalar measurements, each a linear combination of elements of $p$. Each measurement, $y_i$, is modeled as
 
 $$
