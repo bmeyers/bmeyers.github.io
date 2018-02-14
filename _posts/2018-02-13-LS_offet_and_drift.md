@@ -14,14 +14,6 @@ _This is based on a problem presented in EE 263 Linear Dynamical Systems at Stan
 
 ### Background: Least Squares
 
-$$
-    \begin{matrix}
-    1 & x & x^2 \\
-    1 & y & y^2 \\
-    1 & z & z^2 \\
-    \end{matrix}
-$$
-
 Suppose that we are trying to estimate a vector $p\in\mathbf{R}^{n}$. We take $m$ scalar measurements, each a linear combination of elements of $p$. Each measurement, $y_i$, is modeled as
 
 $$
@@ -138,6 +130,7 @@ y_i = a_i^T x + \alpha + \beta i + w_i,\quad\quad i=1,\ldots,m,
 
 This induces the matrix equation:
 
+$$
 \begin{align}
 \left[\begin{matrix}
 y_1 \\ y_2  \\ \vdots \\ y_m
@@ -156,6 +149,7 @@ w_1 \\ w_2 \\ \vdots \\ w_m
 \end{matrix}\right] \\ \\
 y &= \tilde{A}\tilde{x} + w
 \end{align}
+$$
 
 We can now use least squares to find all parameters:
 
