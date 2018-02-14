@@ -1,5 +1,6 @@
 ---
 layout: post
+mathjax: true
 title: Estimation with sensor offset and drift
 categories: 
     - linear algebra
