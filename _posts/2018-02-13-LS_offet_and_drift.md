@@ -16,9 +16,11 @@ _This is based on a problem presented in EE 263 Linear Dynamical Systems at Stan
 
 Suppose that we are trying to estimate a vector $p\in\mathbf{R}^{n}$. We take $m$ scalar measurements, each a linear combination of elements of $p$. Each measurement, $y_i$, is modeled as
 
+$$
 \begin{align}
 y_i = a_i^T p + v_i,\quad\quad i=1,\ldots,m,
 \end{align}
+$$
 
 where
 
@@ -28,11 +30,13 @@ where
 
 We assume that the $a_i$'s are given, i.e. we know the calibration values of the sensor for each measurement. Additionally, we assume that we have at least as many measurements as values we need to estimate $\left(m\geq n\right)$ and that the matrix A given by
 
+$$
 \begin{align}
 A = \left[\begin{matrix}
 a_1^T \\ a_2^T \\ \vdots \\ a_m^T
 \end{matrix}\right]
 \end{align}
+$$
 
 is full rank. For standard linear regression, the vector $x$ would be in $\mathbf{R}^2$ and would represent the slope and intercept parameters. In this context, the matrix $A$ would have the given values for the independent variable in the first column and all ones in the second column, and the vector $y\in\mathbf{R}^m$ would contain the values for the dependent variable. If the error terms, $v_i$, were small, random, and centered around zero (Gaussian white noise), then least squares gives the optimal estimation of x (i.e., minimizes the RMSE):
 
