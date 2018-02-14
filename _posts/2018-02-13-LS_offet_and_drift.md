@@ -43,14 +43,14 @@ is full rank. For standard linear regression, the vector $x$ would be in $\mathb
 Let's illustrate this with a quick example.
 
 
-```python
+{% highlight python%}
 import numpy as np
 from scipy.linalg import inv
 import matplotlib.pyplot as plt
 %matplotlib inline
 import seaborn as sns
 sns.set(context='talk', style='darkgrid', palette='colorblind')
-```
+{% endhighlight %}
 
 
 ```python
