@@ -55,7 +55,7 @@ sns.set(context='talk', style='darkgrid', palette='colorblind')
 {% endhighlight %}
 
 
-```python
+{% highlight python%}
 m = 2
 b = -1
 xs = np.random.uniform(0, 1, 10)
@@ -64,19 +64,19 @@ fig = plt.figure(figsize=(8,6))
 plt.scatter(xs, ys)
 plt.xlabel('x'); plt.ylabel('y')
 plt.show()
-```
+{% endhighlight %}
 
 
-![png](LS_offet_and_drift_files/LS_offet_and_drift_2_0.png)
+![png]({{ "/assets/LS_offet_and_drift_2_0.png" | absolute_url }})
 
 
 Construct the matrix $A$.
 
 
-```python
+{% highlight python%}
 A = np.c_[xs, np.ones_like(xs)]
 print A
-```
+{% endhighlight %}
 
     [[ 0.75797312  1.        ]
      [ 0.62779477  1.        ]
@@ -93,14 +93,14 @@ print A
 Solve the least squares problem.
 
 
-```python
+{% highlight python%}
 p_hat = inv(A.T.dot(A)).dot(A.T).dot(ys)
-```
+{% endhighlight %}
 
 Compared the estimated parameters to the real parameters.
 
 
-```python
+{% highlight python%}
 fig = plt.figure(figsize=(8,6))
 plt.scatter(xs, ys, label='measured')
 x2 = np.linspace(0, 1)
@@ -110,7 +110,7 @@ plt.xlabel('x'); plt.ylabel('y')
 plt.xlim(0, 1); plt.ylim(-1, 1)
 plt.legend(loc=4)
 plt.show()
-```
+{% endhighlight %}
 
 
 ![png]({{ "/assets/LS_offet_and_drift_8_0.png" | absolute_url }})
@@ -177,19 +177,19 @@ Immediately, we see a potential problem! If we are using this to derive the para
 Alright, that's enough theory. Now let's look at an application of this technique. Again, suppose we have some noisy measurements of a function. This time we'll make the function a bit more interesting: a cubic function with no offset. We'll start by again looking at the simpler case where the noise terms are i.i.d. Gaussian white noise, and then we'll add the offset and drift terms.
 
 
-```python
+{% highlight python%}
 def our_func(x, p1=1, p2=3, p3=-0.2):
     output = p1 * x + p2 * np.power(x, 2) + p3 * np.power(x, 3)
     return output
-```
+{% endhighlight %}
 
 
-```python
+{% highlight python%}
 np.random.seed(42)
-```
+{% endhighlight %}
 
 
-```python
+{% highlight python%}
 fig = plt.figure(figsize=(10, 8))
 xs_ideal = np.linspace(-5, 15, 30)
 xs_samples = np.random.uniform(-5, 15, 15)
@@ -199,7 +199,7 @@ plt.scatter(xs_samples, ys_samples)
 plt.legend(['Actual Function', 'Noisy Measurements'], loc=4)
 plt.xlabel('x'); plt.ylabel('y')
 _ = plt.title('Noisy Samples of a Cubic Function')
-```
+{% endhighlight %}
 
 
 ![png]({{ "/assets/LS_offet_and_drift_12_0.png" | absolute_url }})
@@ -238,11 +238,11 @@ $$
 Let's try it out on this cubic-fitting problem! As before, start by constructing matrix $A$.
 
 
-```python
+{% highlight python%}
 A = np.c_[xs_samples, np.power(xs_samples, 2), np.power(xs_samples, 3)]
 np.set_printoptions(precision=2)
 print A
-```
+{% endhighlight %}
 
     [[  2.49e+00   6.20e+00   1.55e+01]
      [  1.40e+01   1.96e+02   2.75e+03]
@@ -264,10 +264,10 @@ print A
 Then, solve the least squares problem.
 
 
-```python
+{% highlight python%}
 p_hat = inv(A.T.dot(A)).dot(A.T).dot(ys_samples)
 print p_hat
-```
+{% endhighlight %}
 
     [ 0.96  2.88 -0.19]
 
@@ -275,7 +275,7 @@ print p_hat
 Recall, that the actual parameters were $\left[1, 3, -0.2\right]$. Let's compare the results.
 
 
-```python
+{% highlight python%}
 fig = plt.figure(figsize=(10, 8))
 plt.plot(xs_ideal, our_func(xs_ideal), linewidth=1, ls='--', label='Actual Function')
 plt.plot(xs_ideal, our_func(xs_ideal, p1=p_hat[0], p2=p_hat[1], p3=p_hat[2]),
@@ -284,7 +284,7 @@ plt.scatter(xs_samples, ys_samples, label='Noisy Measurements')
 plt.legend(loc=4)
 plt.xlabel('x'); plt.ylabel('y')
 _ = plt.title('Noisy Samples of a Cubic Function')
-```
+{% endhighlight %}
 
 
 ![png]({{ "/assets/LS_offet_and_drift_18_0.png" | absolute_url }})
@@ -293,27 +293,27 @@ _ = plt.title('Noisy Samples of a Cubic Function')
 That's pretty good! Now let's make things interesting and include the offset and drift terms. The existing formulation already includes Gaussian white noise, so there's no need to add that again.
 
 
-```python
+{% highlight python%}
 alpha = -3
 beta = 5
-```
+{% endhighlight %}
 
 
-```python
+{% highlight python%}
 ys_od = ys_samples + alpha + beta * np.arange(1, 1 + A.shape[0])
-```
+{% endhighlight %}
 
 As a sanity check, here's what the measurements look like now, as compared to the actual function:
 
 
-```python
+{% highlight python%}
 fig = plt.figure(figsize=(10, 8))
 plt.plot(xs_ideal, our_func(xs_ideal), linewidth=1, ls='--', label='Actual Function')
 plt.scatter(xs_samples, ys_od, label='Noisy Measurements')
 plt.legend(loc=4)
 plt.xlabel('x'); plt.ylabel('y')
 _ = plt.title('Noisy Samples of a Cubic Function')
-```
+{% endhighlight %}
 
 
 ![png]({{ "/assets/LS_offet_and_drift_23_0.png" | absolute_url }})
@@ -324,14 +324,14 @@ Yikes! That looks like a mess. We might not think we would have any chance of re
 First, we construct the augmented matrix $\tilde{A}$.
 
 
-```python
+{% highlight python%}
 A_tilde = np.concatenate([
     A,
     np.ones(A.shape[0])[:, None],
     np.arange(1, 1 + A.shape[0])[:, None]
 ], axis = 1)
 print A_tilde
-```
+{% endhighlight %}
 
     [[  2.49e+00   6.20e+00   1.55e+01   1.00e+00   1.00e+00]
      [  1.40e+01   1.96e+02   2.75e+03   1.00e+00   2.00e+00]
@@ -353,10 +353,10 @@ print A_tilde
 The standard least squared estimate:
 
 
-```python
+{% highlight python%}
 p_ls = inv(A.T.dot(A)).dot(A.T).dot(ys_od)
 print p_ls
-```
+{% endhighlight %}
 
     [-3.5   4.51 -0.27]
 
@@ -364,10 +364,10 @@ print p_ls
 The least squared estimate using the noise model:
 
 
-```python
+{% highlight python%}
 p_ls_plus_noise = inv(A_tilde.T.dot(A_tilde)).dot(A_tilde.T).dot(ys_od)
 print p_ls_plus_noise[:3]
-```
+{% endhighlight %}
 
     [ 1.16  2.86 -0.19]
 
@@ -375,9 +375,9 @@ print p_ls_plus_noise[:3]
 And we also recover the estimates of $\alpha$ and $\beta$.
 
 
-```python
+{% highlight python%}
 p_ls_plus_noise[3:]
-```
+{% endhighlight %}
 
 
 
@@ -402,12 +402,12 @@ So, there are really two errors to consider:
 Let's begin by evaluating the cost function we've minimized. 
 
 
-```python
+{% highlight python%}
 J_ls = np.sum(np.power(y_od - A.dot(p_ls), 2))
 J_ls_plus_noise = np.sum(np.power(y_od - A_tilde.dot(p_ls_plus_noise), 2))
 print 'Basic LS Error:        {:.3f}'.format(J_ls)
 print 'Noise model LS Error:  {:.3f}'.format(J_ls_plus_noise)
-```
+{% endhighlight %}
 
     Basic LS Error:        82210.486
     Noise model LS Error:  55722.231
@@ -416,19 +416,19 @@ print 'Noise model LS Error:  {:.3f}'.format(J_ls_plus_noise)
 That's great! By accounting for the error, we drive the cost down by an additional 32%. That certainly seems promising. Now, let's compare to the oracle (the actual function that generated the data).
 
 
-```python
+{% highlight python%}
 x = our_func(xs_samples)
 x_ls = our_func(xs_samples, p1=p_ls[0], p2=p_ls[1], p3=p_ls[2])
 x_ls_plus_noise = our_func(xs_samples, p1=p_ls_plus_noise[0], p2=p_ls_plus_noise[1], p3=p_ls_plus_noise[2])
 err_ls = np.linalg.norm(x - x_ls)
 err_ls_plus_noise = np.linalg.norm(x - x_ls_plus_noise)
-```
+{% endhighlight %}
 
 
-```python
+{% highlight python%}
 print 'Basic LS Error:        {:.3f}'.format(err_ls)
 print 'Noise model LS Error:  {:.3f}'.format(err_ls_plus_noise)
-```
+{% endhighlight %}
 
     Basic LS Error:        120.583
     Noise model LS Error:  8.427
@@ -439,7 +439,7 @@ As expected, the method that correctly models the error gets much closer to the 
 And finally, visualize the results with another plot:
 
 
-```python
+{% highlight python%}
 fig = plt.figure(figsize=(10, 8))
 plt.plot(xs_ideal, our_func(xs_ideal), linewidth=1, ls='--', label='Actual function')
 plt.plot(xs_ideal, our_func(xs_ideal, p1=p_ls[0], p2=p_ls[1], p3=p_ls[2]), linewidth=1, ls='--', label='LS estimate')
@@ -449,7 +449,7 @@ plt.scatter(xs_samples, ys_od, label='Noisy Measurements')
 plt.legend(loc=4)
 plt.xlabel('x'); plt.ylabel('y')
 _ = plt.title('Noisy Samples of a Cubic Function')
-```
+{% endhighlight %}
 
 
 ![png]({{ "/assets/LS_offet_and_drift_38_0.png" | absolute_url }})
@@ -458,14 +458,14 @@ _ = plt.title('Noisy Samples of a Cubic Function')
 As a final note, I implemented$\left(A^TA\right)^{-1}A^T$ directly to emphasize the underlying equation, but this is known as the pseudoinverse of $A$ and is implemented in the NumPy linear algebra package as [pinv](https://docs.scipy.org/doc/numpy/reference/generated/numpy.linalg.pinv.html).
 
 
-```python
+{% highlight python%}
 from numpy.linalg import pinv
-```
+{% endhighlight %}
 
 
-```python
+{% highlight python%}
 np.allclose(pinv(A), inv(A.T.dot(A)).dot(A.T))
-```
+{% endhighlight %}
 
 
 
