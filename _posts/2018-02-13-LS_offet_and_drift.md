@@ -113,7 +113,7 @@ plt.show()
 ```
 
 
-![png](LS_offet_and_drift_files/LS_offet_and_drift_8_0.png)
+![png]({{ "/assets/LS_offet_and_drift_8_0.png" | absolute_url }})
 
 
 ### Adding bias and drift to the error
@@ -202,7 +202,7 @@ _ = plt.title('Noisy Samples of a Cubic Function')
 ```
 
 
-![png](LS_offet_and_drift_files/LS_offet_and_drift_12_0.png)
+![png]({{ "/assets/LS_offet_and_drift_12_0.png" | absolute_url }})
 
 
 A cubic function with no offset is fully defined by three scalar coefficients:
@@ -287,7 +287,7 @@ _ = plt.title('Noisy Samples of a Cubic Function')
 ```
 
 
-![png](LS_offet_and_drift_files/LS_offet_and_drift_18_0.png)
+![png]({{ "/assets/LS_offet_and_drift_18_0.png" | absolute_url }})
 
 
 That's pretty good! Now let's make things interesting and include the offset and drift terms. The existing formulation already includes Gaussian white noise, so there's no need to add that again.
@@ -316,7 +316,7 @@ _ = plt.title('Noisy Samples of a Cubic Function')
 ```
 
 
-![png](LS_offet_and_drift_files/LS_offet_and_drift_23_0.png)
+![png]({{ "/assets/LS_offet_and_drift_23_0.png" | absolute_url }})
 
 
 Yikes! That looks like a mess. We might not think we would have any chance of recovering the original function from these measurements, but we'll see that correctly modeling the error saves the day.
@@ -452,7 +452,7 @@ _ = plt.title('Noisy Samples of a Cubic Function')
 ```
 
 
-![png](LS_offet_and_drift_files/LS_offet_and_drift_38_0.png)
+![png]({{ "/assets/LS_offet_and_drift_38_0.png" | absolute_url }})
 
 
 As a final note, I implemented$\left(A^TA\right)^{-1}A^T$ directly to emphasize the underlying equation, but this is known as the pseudoinverse of $A$ and is implemented in the NumPy linear algebra package as [pinv](https://docs.scipy.org/doc/numpy/reference/generated/numpy.linalg.pinv.html).
