@@ -77,6 +77,10 @@ a {
   }
 }
 
+a.entry {
+  text-decoration: underline;
+}
+
 ul, ol {
   margin: 15px 0;
   padding-left: 30px;
@@ -268,17 +272,6 @@ nav {
   .read-more {
     text-transform: uppercase;
     font-size: 15px;
-  }
-}
-
-.entry {
-  a {
-    color: $blue;
-    text-decoration: underline;
-    cursor: pointer;
-    &:hover, &:active {
-      color: $blue;
-    }
   }
 }
 
