@@ -2,7 +2,7 @@
 layout: post
 mathjax: true
 title: Estimation with sensor offset and drift
-tags: [linear algebra, data fitting, least squares, error models, numpy]
+tags: [linear algebra, data fitting, least squares, numpy, ee263]
 ---
 
 _This is based on a problem presented in EE 263 Linear Dynamical Systems at Stanford University_
