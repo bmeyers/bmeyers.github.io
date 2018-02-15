@@ -57,7 +57,9 @@ $$
 f_{X\mid Y}\left(x \mid Y=y \right) = \frac{f_{X,Y}(x,y)}{f_X(x)}.
 $$
 
-This approach, while valid, is extremely messy and quite difficult. Proving the result using this approach in the (relatively) simple where $X$ and $Y$ are scalars (so the combined vector is in $\mathbf{R}^2$) turns out to be quite hard. Trying to prove the general case this way is an exercise in masochism. But, it turns out there's a better way! It turns out Jointly Gaussian random vectors have the especially nice property that uncorrelated variables are also independent. (Note, this is not true in general. For example, if $X\sim U(-1, 1)$ and $Y=X^2$, then $X$ and $Y$ are uncorrelated but _not_ independent.) We will exploit this fact about JG random variables to prove the formulas given above.
+This approach, while valid, is extremely messy and quite difficult. Proving the result using this approach in the (relatively) simple where $X$ and $Y$ are scalars (so the combined vector is in $\mathbf{R}^2$) turns out to be quite hard. Trying to prove the general case this way is an exercise in masochism.
+
+But, it turns out there's a better way! Jointly Gaussian random vectors have the especially nice property that uncorrelated variables are also independent. (Note, this is not true in general. For example, if $X\sim U(-1, 1)$ and $Y=X^2$, then $X$ and $Y$ are uncorrelated but _not_ independent.) We will exploit this fact about JG random variables to prove the formulas given above.
 
 ### The Proof
 
