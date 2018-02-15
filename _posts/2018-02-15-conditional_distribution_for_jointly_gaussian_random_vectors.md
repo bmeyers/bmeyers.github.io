@@ -45,7 +45,7 @@ $$
 
 then the distribution of $X$ given $Y=y$ is a multivariate Gaussian with location
 
-$$\bar{\mu} = \mu_X + \Sigma_{XY}\Sigma_{Y}^{-1}(Y-\mu_Y)$$
+$$\bar{\mu} = \mu_X + \Sigma_{XY}\Sigma_{Y}^{-1}(y-\mu_Y)$$
 
 and covariance
 
