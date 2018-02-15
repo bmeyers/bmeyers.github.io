@@ -1,7 +1,7 @@
 ---
 layout: post
 mathjax: true
-title: Derivation of conditional distribution for jointly Gaussian random vectors
+title: Derivation of conditional distribution for Jointly Gaussian random vectors
 tags: [probability, statistics, gaussian, ee278]
 ---
 
