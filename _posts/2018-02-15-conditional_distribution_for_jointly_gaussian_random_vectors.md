@@ -37,7 +37,7 @@ Finally, we say that two vectors $X\in\mathbf{R}^n$ and $Y\in\mathbf{R}^m$ are J
 
 ### Conditional distributions
 
-In probability theory and statistical estimation, we often encounter problems where we have two Jointly Gaussian random vectors, and we observe a realization of one of the vectors. Based on this observation, we want to know the location and covariance of the remaining vector. This is called finding the "conditional distribution" of the unobserved vector. There is a [famous formula](https://en.wikipedia.org/wiki/Multivariate_normal_distribution#Conditional_distributions) that states if $X\in\mathbf{R}^n$ and $Y\in\mathbf{R}^m$ are Jointly Gaussian random vectors, with the joint distribution
+In probability theory and statistical estimation, we often encounter problems where we have two Jointly Gaussian random vectors, and we observe a realization of one of the vectors. Based on this observation, we want to know the location and covariance of the remaining vector. This is called finding the "conditional distribution" of the unobserved vector. There is a [__famous formula__](https://en.wikipedia.org/wiki/Multivariate_normal_distribution#Conditional_distributions) that states if $X\in\mathbf{R}^n$ and $Y\in\mathbf{R}^m$ are Jointly Gaussian random vectors, with the joint distribution
 
 $$
 \left[\begin{matrix} X \\ Y \end{matrix}\right] \sim \mathcal{N}\left(\left[\begin{matrix} \mu_X \\ \mu_Y \end{matrix}\right], \left[\begin{matrix} \Sigma_{X} & \Sigma_{XY}\\ \Sigma_{YX} & \Sigma_{Y} \end{matrix}\right]\right),
