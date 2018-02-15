@@ -2,19 +2,14 @@
 layout: post
 mathjax: true
 title: Estimation with sensor offset and drift
-categories: 
-    - linear algebra
-    - data fitting
-    - least squares
-    - error models
-    - numpy
+tags: [linear algebra, data fitting, least squares, error models, numpy]
 ---
 
 _This is based on a problem presented in EE 263 Linear Dynamical Systems at Stanford University_
 
 ### Background: Least Squares
 
-Suppose that we are trying to estimate a vector $p\in\mathbf{R}^{n}$. We take $m$ scalar measurements, each a linear combination of elements of $p$. Each measurement, $y_i$, is modeled as
+Suppose that we are trying to estimate a vector $p\in\mathbf{R}^{n}$. We take $m$ scalar measurements, each a linear combination of the elements of $p$. Each measurement, $y_i$, is modeled as
 
 $$
 y_i = a_i^T p + v_i,\quad\quad i=1,\ldots,m,
@@ -23,7 +18,7 @@ $$
 where
 
 - $y_i\in\mathbf{R}$ is the $i^{\text{th}}$ measurement
-- $p\in\mathbf{R}^n$ is vector we wish to measure
+- $p\in\mathbf{R}^n$ is the vector we wish to measure
 - $v_i$ is the sensor or measurement error of the ith measurement.
 
 We assume that the $a_i$'s are given, i.e. we know the calibration values of the sensor for each measurement. Additionally, we assume that we have at least as many measurements as values we need to estimate $\left(m\geq n\right)$ and that the matrix A given by
@@ -131,7 +126,7 @@ We will use least squares to simultaneously the desired vector $x\in\mathbf{R}^n
 
 $$
 \begin{align}
-y_i = a_i^T x + \alpha + \beta i + w_i,\quad\quad i=1,\ldots,m,
+y_i = a_i^T p + \alpha + \beta i + w_i,\quad\quad i=1,\ldots,m,
 \end{align}
 $$
 
@@ -149,12 +144,12 @@ a_2^T & 1 & 2 \\
 a_m^T & 1 & m
 \end{matrix}\right]
 \left[\begin{matrix}
-x \\ \alpha \\ \beta
+p \\ \alpha \\ \beta
 \end{matrix}\right] + 
 \left[\begin{matrix}
 w_1 \\ w_2 \\ \vdots \\ w_m
 \end{matrix}\right] \\ \\
-y &= \tilde{A}\tilde{x} + w
+y &= \tilde{A}\tilde{p} + w
 \end{align}
 $$
 
@@ -162,20 +157,20 @@ We can now use least squares to find all parameters:
 
 $$
 \begin{align}
-\hat{\tilde{x}} = \left[\begin{matrix}
-\hat{x} \\ \hat{\alpha} \\ \hat{\beta}
+\hat{\tilde{p}} = \left[\begin{matrix}
+\hat{p} \\ \hat{\alpha} \\ \hat{\beta}
 \end{matrix}\right] = \left(\tilde{A}^T\tilde{A}\right)^{-1}\tilde{A}^T y
 \end{align}
 $$
 
-Alright! We have a closed-form expression to estimate $x$, $\alpha$, and $\beta$. A couple caveats: for this to work, the following much be true:
+Alright! We have a closed-form expression to estimate $p$, $\alpha$, and $\beta$. A couple caveats: for this to work, the following much be true:
 
 - $m\geq n +2$. We must have enough measurement to recover $n+2$ parameters.
 - $\tilde{A}$ must be full rank. Note, even if $A$ is full rank (which is given), $\tilde{A}$ might not be. If some linear combination of the sensor signals looks like some linear combination of the offset and drift, then it is impossible to separate the offset and drift parameters from $x$. 
 
 Immediately, we see a potential problem! If we are using this to derive the parameters of a statistical model (as in the previous example), that model can't contain an offset term! If it does, then the second condition is violated.
 
-Alright, that's enough theory. Now let's look at an application of this technique. Again, suppose we have some noisy measurements of a function. This time we'll make the function a bit more interesting: a cubic function with no offset. We'll start by again looking at the simpler case where the noise terms are i.i.d. Gaussian white noise, and then we'll add the offset and drift terms.
+Alright, that's enough theory. Now let's look at an application of this technique. Again, suppose we have some noisy measurements of a function. This time we'll make the function a bit more interesting: a cubic function with no offset. We'll start by again looking at the simpler case where the noise terms are [i.i.d.](https://en.wikipedia.org/wiki/Independent_and_identically_distributed_random_variables) Gaussian white noise, and then we'll add the offset and drift terms.
 
 
 {% highlight python%}
