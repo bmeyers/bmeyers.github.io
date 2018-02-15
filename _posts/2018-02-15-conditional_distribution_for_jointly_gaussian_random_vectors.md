@@ -63,7 +63,7 @@ But, it turns out there's a better way! Jointly Gaussian random vectors have the
 
 ### The Proof
 
-Let $x\in\mathbf{R}^n$ and $y\in\mathbf{R}^m$ be jointly Gaussian random vectors. (Note, we are dropping the convetion of distinguishing between a random vector $X$ and its realization $x$ for ease of notation.) The joint distribution is given as:
+Let $x\in\mathbf{R}^n$ and $y\in\mathbf{R}^m$ be jointly Gaussian random vectors. (Note, we are dropping the convention of distinguishing between a random vector $X$ and its realization $x$ for ease of notation.) The joint distribution is given as:
 
 $$
 \left[\begin{matrix} x \\ y \end{matrix}\right] \sim \mathcal{N}\left(\left[\begin{matrix} \mu_x \\ \mu_y \end{matrix}\right], \left[\begin{matrix} \Sigma_{x} & \Sigma_{xy}\\ \Sigma_{yx} & \Sigma_{y} \end{matrix}\right]\right)
