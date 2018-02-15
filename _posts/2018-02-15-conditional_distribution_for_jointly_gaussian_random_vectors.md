@@ -2,7 +2,7 @@
 layout: post
 mathjax: true
 title: Derivation of conditional distribution for jointly Gaussian random vectors
-tags: [probability, gaussian, ee278]
+tags: [probability, statistics, gaussian, ee278]
 ---
 
 _This is based on lectures from EE 278 Statistical Signal Processing at Stanford University_
@@ -51,7 +51,7 @@ and covariance
 
 $$\bar{\Sigma} = \Sigma_{X}-\Sigma_{XY}\Sigma_{Y}^{-1}\Sigma_{YX}.$$
 
-If one were to try to take up the task of deriving these formulas, one might be tempted to start from the [definition of the conditional probability distribution](https://en.wikipedia.org/wiki/Conditional_probability_distribution):
+If one were to try to take up the task of deriving these formulas, one might be tempted to plug equation (1) into the [definition of the conditional probability distribution](https://en.wikipedia.org/wiki/Conditional_probability_distribution):
 
 $$
 f_{X\mid Y}\left(x \mid Y=y \right) = \frac{f_{X,Y}(x,y)}{f_X(x)}.
@@ -62,16 +62,19 @@ This approach, while valid, is extremely messy and quite difficult. Proving the 
 ### The Proof
 
 Let $x\in\mathbf{R}^n$ and $y\in\mathbf{R}^m$ be jointly Gaussian random vectors. (Note, we are dropping the convetion of distinguishing between a random vector $X$ and its realization $x$ for ease of notation.) The joint distribution is given as:
-\begin{align*}
+$$
 \left[\begin{matrix} x \\ y \end{matrix}\right] \sim \mathcal{N}\left(\left[\begin{matrix} \mu_x \\ \mu_y \end{matrix}\right], \left[\begin{matrix} \Sigma_{x} & \Sigma_{xy}\\ \Sigma_{yx} & \Sigma_{y} \end{matrix}\right]\right)
-\end{align*}
+$$
 Let $\tilde{x}=x-\mu_x$ and $\tilde{y}=y-\mu_y$ be the mean-centered versions of $x$ and $y$. Introduce $z\triangleq \tilde{x}-A\tilde{y}$. Note that $\mathsf{E}[z]=0$. We can choose $A$ such that $z$ and $\tilde{y}$ are uncorrelated. Because $z$ and $\tilde{y}$ are also jointly Gaussian, being uncorrelated implies that they are independent. We find $A$ by setting $\mathsf{E}\left[z\tilde{y}\right] =0$.
+$$
 \begin{align*}
 \mathsf{E}\left[z\tilde{y}^T\right] =0 &= \mathsf{E}\left[(\tilde{x}-A\tilde{y})\tilde{y}^T \right] \\
 &= \mathsf{E}\left[\tilde{x}\tilde{y}^T\right]-A\cdot\mathsf{E}\left[\tilde{y}\tilde{y}^T\right] \\
 &= \Sigma_{xy} - A \Sigma_{y}\quad\implies\quad A = \Sigma_{xy}\Sigma_{y}^{-1}
 \end{align*}
+$$
 By the way we defined $z$, we have $\tilde{x}=A\tilde{y}+z$, with $\tilde{y}$ and $z$ independent. If we condition on $\tilde{y}$, then $\tilde{y}$ is fixed and is no longer random, and $z$ is unaffected, so we have
+$$
 \begin{align*}
 \mathsf{E}[\tilde{x}\mid \tilde{y}] &= A\tilde{y}+\mathsf{E}[z] \\
 &=  \Sigma_{xy}\Sigma_{y}^{-1}\tilde{y} \\
@@ -86,8 +89,11 @@ By the way we defined $z$, we have $\tilde{x}=A\tilde{y}+z$, with $\tilde{y}$ an
 &= \Sigma_{x}-\Sigma_{xy}\Sigma_{y}^{-1}\Sigma_{xy}^T -\Sigma_{xy}\Sigma_{y}^{-1}\Sigma_{yx} +\Sigma_{xy}\Sigma_{y}^{-1}\Sigma_{y}\Sigma_{y}^{-1}\Sigma_{xy}^T \\
 &= \Sigma_{x}-\Sigma_{xy}\Sigma_{y}^{-1}\Sigma_{xy}^T
 \end{align*}
+$$
 And so, we have derived the conditional distribution of $x\mid y$:
+$$
 \begin{align*}
 x\mid y \sim \mathcal{N}\left( \mu_x + \Sigma_{xy}\Sigma_{y}^{-1}(y-\mu_y),  \Sigma_{x}-\Sigma_{xy}\Sigma_{y}^{-1}\Sigma_{xy}^T\right)
 \end{align*}
+$$
 Intuitively, given the observation $y$, the expected value of $x$ updated as a function of that observation while the covariance matrix of $x$ is shrunk. Note that if the covariance between $x$ and $y$ were zero, i.e. the two vectors are independent, then these expressions reduce to the mean and covariance matrix of $x$.
