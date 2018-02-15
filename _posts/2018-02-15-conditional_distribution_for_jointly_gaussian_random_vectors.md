@@ -83,7 +83,7 @@ $$
 \begin{align*}
 \mathsf{E}[\tilde{x}\mid \tilde{y}] &= A\tilde{y}+\mathsf{E}[z] \\
 &=  \Sigma_{xy}\Sigma_{y}^{-1}\tilde{y} + 0\\
-&= \Sigma_{xy}\Sigma_{y}^{-1}\tilde{y}
+&= \Sigma_{xy}\Sigma_{y}^{-1}\tilde{y} \\
 \mathsf{E}[x\mid \tilde{y}] &= \mathsf{E}[\tilde{x}\mid \tilde{y}] + \mu_x \\
 \implies\quad \mathsf{E}[x\mid y] &= \mu_x + \Sigma_{xy}\Sigma_{y}^{-1}(y-\mu_y) \\
 \mathsf{Cov}(x\mid y) &= \mathsf{Cov}(\tilde{x}\mid \tilde{y}) \\
