@@ -67,7 +67,7 @@ $$
 \left[\begin{matrix} x \\ y \end{matrix}\right] \sim \mathcal{N}\left(\left[\begin{matrix} \mu_x \\ \mu_y \end{matrix}\right], \left[\begin{matrix} \Sigma_{x} & \Sigma_{xy}\\ \Sigma_{yx} & \Sigma_{y} \end{matrix}\right]\right)
 $$
 
-Let $\tilde{x}=x-\mu_x$ and $\tilde{y}=y-\mu_y$ be the mean-centered versions of $x$ and $y$. Next, introduce $z\triangleq \tilde{x}-A\tilde{y}$. Note that $\mathsf{E}[z]=0$ by construction because $\tilde{x}$ and $$\tilde{y}$ are both zero-mean. We can then choose $A$ such that $z$ and $\tilde{y}$ are uncorrelated. Because $z$ and $\tilde{y}$ are also jointly Gaussian, being uncorrelated implies that they are independent. We find $A$ by setting $\mathsf{Cov}(z,\tilde{y}=\mathsf{E}\left[z\tilde{y}\right] =0$ and solving for A.
+Let $\tilde{x}=x-\mu_x$ and $\tilde{y}=y-\mu_y$ be the mean-centered versions of $x$ and $y$. Next, introduce $z\triangleq \tilde{x}-A\tilde{y}$. Note that $\mathsf{E}[z]=0$ by construction because $\tilde{x}$ and $\tilde{y}$ are both zero-mean. We can then choose $A$ such that $z$ and $\tilde{y}$ are uncorrelated. Because $z$ and $\tilde{y}$ are also jointly Gaussian, being uncorrelated implies that they are independent. We find $A$ by setting $\mathsf{Cov}(z,\tilde{y}=\mathsf{E}\left[z\tilde{y}\right] =0$ and solving for A.
 
 $$
 \begin{align*}
