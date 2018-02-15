@@ -107,4 +107,4 @@ x\mid y \sim \mathcal{N}\left( \mu_x + \Sigma_{xy}\Sigma_{y}^{-1}(y-\mu_y),  \Si
 \end{align*}
 $$
 
-Intuitively, given the observation $y$, the expected value of $x$ updated as a function of that observation while the covariance matrix of $x$ is shrunk. Note that if the covariance between $x$ and $y$ were zero, i.e. the two vectors are independent, then these expressions reduce to the mean and covariance matrix of $x$.
+Intuitively, when we get information about $y$, we update the expected value and shrink the covariance matrix of $x$. Note that if the covariance between $x$ and $y$ were zero (i.e. the two vectors are independent), then these expressions reduce to the mean and covariance matrix of $x$. This makes sense! If $x$ and $y$ are independent, knowing something about $y$ gives us no information about $x$.
