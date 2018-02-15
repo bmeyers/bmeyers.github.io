@@ -271,6 +271,17 @@ nav {
   }
 }
 
+.entry {
+  a {
+    color: $blue;
+    text-decoration: underline;
+    cursor: pointer;
+    &:hover, &:active {
+      color: $blue;
+    }
+  }
+}
+
 .wrapper-footer {
   margin-top: 50px;
   border-top: 1px solid #ddd;
