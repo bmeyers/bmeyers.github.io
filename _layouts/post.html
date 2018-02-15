@@ -14,7 +14,7 @@ layout: default
 	  {% endif %}
 	  tagged: 
 	  {% for tag in tags %}
-	  <a href="{{site.baseurl}}/tags/#{{tag|slugize}}" class="w3-button w3-blue w3-hover-teal w3-round w3-small">{{tag}}</a>
+	  <a href="{{site.baseurl}}/tags/#{{tag|slugize}}" class="w3-button w3-blue w3-hover-teal w3-round-xxlarge w3-padding-small w3-small">{{tag}}</a>
 	  {% unless forloop.last %}&nbsp;{% endunless %}
 	  {% endfor %}
 	</div>
