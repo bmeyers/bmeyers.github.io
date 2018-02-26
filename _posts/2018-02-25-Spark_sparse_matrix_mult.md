@@ -169,7 +169,7 @@ M_rdd.take(10)
 
 So, we successfully created an RDD containing a COO representation of the matrix. 
 
-### Matrix-vector multiplication on Spark RDDS
+### Matrix-vector multiplication on Spark RDDs
 
 The basic tranformations on RDDs are `map` and `reduceByKey`, which are exact parallels of the older [MapReduce](https://en.wikipedia.org/wiki/MapReduce) paradigm. Briefly, a MapReduce operation does the following:
 
