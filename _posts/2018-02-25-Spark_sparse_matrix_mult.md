@@ -113,7 +113,7 @@ type(M)
 
 ### Spark RDDs and Transformations
 
-The fundamental data structure of Spark is the [resilliant distributed dataset (RDD)](https://spark.apache.org/docs/2.2.0/rdd-programming-guide.html#resilient-distributed-datasets-rdds), which is a fault-tolerant collection of elements that can be operated on in parallel via Spark. The standard method for instantiating an RDD is by referencing a dataset in an external storage system, such as a shared filesystem, HDFS, HBase, or any data source offering a Hadoop InputFormat. Below, we instatiate an RDD using the built-in `textFile` from PySpark. This interprets a text file as a sequence of strings, with each line of the file represented as a single string
+The fundamental data structure of Spark is the [resilliant distributed dataset (RDD)](https://spark.apache.org/docs/2.2.0/rdd-programming-guide.html#resilient-distributed-datasets-rdds), which is a fault-tolerant collection of elements that can be operated on in parallel via Spark. The standard method for instantiating an RDD is by referencing a dataset in an external storage system, such as a shared filesystem, HDFS, HBase, or any data source offering a Hadoop InputFormat. Below, we instatiate an RDD using the built-in `textFile` from PySpark. This interprets a text file as a sequence of strings, with each line of the file represented as a single string.
 
 
 {% highlight python%}
