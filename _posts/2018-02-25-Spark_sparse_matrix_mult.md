@@ -15,7 +15,7 @@ $$
 \frac{\text{number of zero-valued elements}}{\text{total number of elements}}.
 $$
 
-Sparse matrices describe loosely coupled linear systems. It is often convenient to store sparse matrices in [COO (coordinate list)](https://en.wikipedia.org/wiki/Sparse_matrix#Storing_a_sparse_matrix) format. This allows us to define only the non-zero elements of the matrix as a list of 3-tuples: $(i, j, v)$, such that $M_{ij}=v$. As an example, here's some Python code that uses NumPy to generate a random, sparse matrix in $\mathbf{R}^{10000\times 10000}$ with 20000 non-zero entries between 0 and 1. We'll also make use of the `coo_matrix` class from `scipy.sparse`, which allows us to quickly convert to a dense format for testing.
+Sparse matrices describe loosely coupled linear systems. It is often convenient to store sparse matrices in [COO (coordinate list)](https://en.wikipedia.org/wiki/Sparse_matrix#Storing_a_sparse_matrix) format. This allows us to define only the non-zero elements of the matrix as a list of 3-tuples: $(i, j, v)$, such that $M_{ij}=v$. As an example, here's some Python code that uses NumPy to generate a random, sparse matrix in $\mathbf{R}^{\text{10,000}\times \text{10,000}}$ with 20,000 non-zero entries between 0 and 1. We'll also make use of the `coo_matrix` class from `scipy.sparse`, which allows us to quickly convert to a dense format for testing.
 
 
 {% highlight python%}
