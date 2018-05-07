@@ -488,7 +488,7 @@ plt.show()
 ![png]({{ "assets/output_28_0.png" | absolute_url}})
 
 
-If we now freeze our estimate of $s_2$ as this projected signal, we can resolved for $\hat{s}_1$ and get a better estimate of the smooth signal.
+If we now freeze our estimate of $s_2$ as this projected signal, we can resolve for $\hat{s}_1$ and get a better estimate of the smooth signal.
 
 
 {% highlight python%}
