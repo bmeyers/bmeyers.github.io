@@ -199,7 +199,7 @@ So, in this particular case, we can solve for the probability distribution exact
 
 ### The expectation-maximization (EM) algorithm
 
-The [EM algorithm](https://en.wikipedia.org/wiki/Expectation%E2%80%93maximization_algorithm) is an iterative method for maximizing a likelihood function over some latent variables ($\rho_1,\ldots,\rho_m). In many cases (like this one), it is not tractable to directly maximize the likelihood function. Instead, we alternate between two steps:
+The [EM algorithm](https://en.wikipedia.org/wiki/Expectation%E2%80%93maximization_algorithm) is an iterative method for maximizing a likelihood function over some latent variables $(\rho_1,\ldots,\rho_m)$. In many cases (like this one), it is not tractable to directly maximize the likelihood function. Instead, we alternate between two steps:
 
 1. Guess at the values that we want and calculate (E-step)
 2. Maximize the expectation with respect to the latent variables.
