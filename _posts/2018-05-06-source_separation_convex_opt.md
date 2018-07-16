@@ -11,7 +11,7 @@ _An exploration of blind signal separation using convex optimization. Materials 
 
 Signal separations problems deal generally estimating component signals from from some one or more observed combinations of the signals. In blind signal separation (BSS), you have no or little information about the underlying signals. In partiuclar, we suppose that we don't have a training dataset of separated signals with which to train a model.
 
-In single-channel signal separation, you measure a signal that is a mixture of other signals, and you estimate what the underlyings signalsa are. The mathematical model for this problem is
+In single-channel signal separation, you measure a signal that is a mixture of other signals, and you estimate what the underlyings signals are. The mathematical model for this problem is
 
 $$ x[t] = \sum_{k=1}^K s_k[t], $$
 
