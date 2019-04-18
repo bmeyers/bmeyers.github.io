@@ -1,5 +1,10 @@
-
-# Land Usage for Utility Scale PV Power Plants
+---
+layout: post
+mathjax: true
+title: Land Usage for Utility Scale PV Power Plants
+tags: [land usage, pv industry, data scraping, python tricks]
+---
+ _Scraping data from Wikipedia to investigate how much land a utility PV power plant requires_
 
 I received a message from an old friend this afternoon who said, "Random question. How big of site would you guess is required for a 1 megawatt solar field?" To which I responded, in classic Ph.D. fashion, "Well, that's complicated." 
 
@@ -12,25 +17,25 @@ Having never actually scraped data from a Wikipedia table before, I figured this
 We begin with the imports we'll need:
 
 
-```python
+{% highlight python%}
 import requests
 from bs4 import BeautifulSoup
 import pandas as pd
-```
+{% endhighlight %}
 
 First things first, set up the HTML request, parse the HTML response, and extract the table.
 
 
-```python
+{% highlight python%}
 website_url = requests.get('https://en.wikipedia.org/wiki/List_of_photovoltaic_power_stations').text
 soup = BeautifulSoup(website_url, 'lxml')
 my_table = soup.find('table', {'class': 'wikitable sortable'})
-```
+{% endhighlight %}
 
 Tables in Wikipedia tend to have references in the cell text, which is annoying if the cell is supposed to have a float value. Finding and removing the references later can be a hassle, because the references are numeric as is the data we are looking for (and I'm not that proficient at regex). Luckily, `BeautifulSoup` makes searching and modifying HTML trees exceptionally easy. In the cell below, we search all cells in the table and remove all examples of the `reference` class.
 
 
-```python
+{% highlight python%}
 for row in my_table.findAll('tr'):
     cells = row.findAll(['th', 'td'])
     for cell in cells:
@@ -38,19 +43,19 @@ for row in my_table.findAll('tr'):
         if references:
             for ref in references:
                 ref.extract()
-```
+{% endhighlight %}
 
 `pandas` has all for data I/O needs covered, and comes with an HTML reader. We simply convert the HTML tree to a string and pass it to `pandas` to make a data frame out of.
 
 
-```python
+{% highlight python%}
 df = pd.read_html(str(my_table), header=0)[0]
-```
+{% endhighlight %}
 
 Now we just need to clean up some column names and data types. Some of the entries in the `Capacity` column contain an asterisk character (`*`) as explained on the Wikipedia page. As with the references, we need to remove these characters to isolate the numerica data. The second to last line below strips all non-numeric characters from the `Capacity` column.
 
 
-```python
+{% highlight python%}
 cols = list(df.columns)
 cols[3] = 'Capacity'
 cols[4] = 'YearlyEnergy'
@@ -58,14 +63,14 @@ cols[5] = 'LandSize'
 df.columns = cols
 df['Capacity'] = df['Capacity'].str.extract('(\d+)', expand=False)
 df = df.astype({'LandSize': float, 'Capacity': float})
-```
+{% endhighlight %}
 
 And now we have successfully converted the table on Wikipedia to a useable data frame!
 
 
-```python
+{% highlight python%}
 df.head()
-```
+{% endhighlight %}
 
 
 
@@ -169,7 +174,7 @@ df.head()
 And now, let's answer my friend's original question and check if the simple rule of thumb is correct. The data in the table is in terms of MW and square kilometers, so we'll need to change our units to kW and square feet to compare to the given rule of thumb.
 
 
-```python
+{% highlight python%}
 land_usage = (df['LandSize'] * 1.076e+7 / df['Capacity'] / 1000).dropna()
 plt.figure(figsize=(10,6))
 plt.hist(land_usage, bins=20)
@@ -182,10 +187,9 @@ plt.axvline(100, ls='--', color='r', label='rule of thumb: 100 ft^2/kW')
 med = np.median(land_usage)
 plt.axvline(med, ls=':', color='orange', label='median:           {:.0f} ft^2/kW'.format(med))
 plt.legend();
-```
+{% endhighlight %}
 
-
-![png](output_13_0.png)
+![png]({{ "assets/LandUsage_13_0.png" | absolute_url}})
 
 
 So, we see that the median value for this set of power plants is more than three times larger than the standard rule of thumb!
