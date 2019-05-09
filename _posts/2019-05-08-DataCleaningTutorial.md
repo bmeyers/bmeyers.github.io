@@ -666,7 +666,9 @@ clear_sky_fit2.plot_energy(show_clear=True);
 ![png]({{ "assets/DataCleaning_64_0.png" | absolute_url}})
 
 
-We can see that the algorithm has basically ingored the first year. It selected only one day to include in the fit in the first year (orange dot), but then it treats that day as an outlier and does not utilize to understand the shape of the clear sky signal. Note that you can see the effects of the incorrect attempt at time shift fixing in this plot.
+We can see that the algorithm has basically ingored the first year. It selected only one day to include in the fit in the first year (orange dot), but then it treats that day as an outlier and does not utilize to understand the shape of the clear sky signal.
+
+In this next plot, we see what has happened during the first year, with the zero-filled data. The algorithm has clearly ingored this part of the data set in fitting the clear sky model. You can also see the effects of the incorrect attempt at time shift fixing.
 
 
 {% highlight python%}
@@ -676,7 +678,7 @@ clear_sky_fit2.ts_plot(start_day=190, num_days=3, figsize=(12,6), loc=0);
 ![png]({{ "assets/DataCleaning_66_0.png" | absolute_url}})
 
 
-The algorithm still fits the days in the second and third years quite well.
+The algorithm still fits the days in the second and third years quite well:
 
 
 {% highlight python%}
