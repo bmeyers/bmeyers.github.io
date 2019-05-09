@@ -30,7 +30,7 @@ Continuing the theme, the recorded time can appear to shift suddenly relative to
 __________________________________________________________________________________________________
 \* Most data loggers provide built in functions for measuring at a high scan rate, like every 5 seconds, but then only storing rolled up statistics, such as 1 or 5 minute averages.
 
-### Data cleaning: prepairing for analysis
+### Data cleaning: preparing for analysis
 
 Fundamentally, if a data set is too corrupted by the types of errors described above, it will not be possible to extract useful information from that data set. But for moderately corrupted data sets, we want to clean up these types of errors so that we can then analyze the data, such as to estimate overall system degradation or look for loss factors. I am particularly interested in methods that automate this process. 
 
