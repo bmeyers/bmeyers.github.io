@@ -686,7 +686,7 @@ clear_sky_fit2.ts_plot(start_day=455, num_days=3, figsize=(12,6), loc=0);
 ![png]({{ "assets/DataCleaning_68_0.png" | absolute_url}})
 
 
-But now we get an impossible degradation rate. The algorithm thinks that they performance of the system is _improving_ by 1.07% year-over-year.
+But now we get an impossible degradation rate. The algorithm thinks that the performance of the system is _improving_ by 1.07% year-over-year.
 
 
 {% highlight python%}
