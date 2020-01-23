@@ -4,6 +4,7 @@ mathjax: true
 title: Using Cross-Validation to Solve Anscombe's Quartet
 tags: [data fitting, statistical estimation, model selection, statistics]
 ---
+_How can we use machine learning techniques to solve a classic statistics problem?_
 
 <style>
 .tablelines table, .tablelines td, .tablelines th {
@@ -11,8 +12,6 @@ tags: [data fitting, statistical estimation, model selection, statistics]
         padding: 10px;
         }
 </style>
-
-_How can we use machine learning techniques to solve a classic statistics problem?_
 
 [Anscombe's Quartet](https://en.wikipedia.org/wiki/Anscombe%27s_quartet) is a collection of four data sets with nearly exactly the same summary statistics. It was developed by statistician Francis Anscombe in 1973 to illustrate the importance of plotting data and the impact of outliers on statistical analysis. 
 
