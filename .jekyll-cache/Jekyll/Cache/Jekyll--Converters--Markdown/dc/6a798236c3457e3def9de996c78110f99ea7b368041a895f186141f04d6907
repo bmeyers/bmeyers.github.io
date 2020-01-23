@@ -1,0 +1,16 @@
+I"ù<p><em>A preview of optimal signal demixing (OSD)</em></p>
+
+<style>
+.tablelines table, .tablelines td, .tablelines th {
+        border: 1px solid black;
+        padding: 10px;
+        }
+</style>
+
+<p>Optimal signal demixing (OSD) is an approach to solving structured <a href="https://en.wikipedia.org/wiki/Signal_separation">signal separation problems</a>. I presented my research on this topic for my PhD qualifying exam in Electrical Engineering at Stanford University in October 2019. I am hosting the slides here, in advance of a coming paper on this topic in the next year.</p>
+
+<ul>
+  <li>Slides are available <a href="http://localhost:4000/assets/BennetMeyers_Quals_Presentation_2019.pdf">here</a>.</li>
+  <li>I have also started building a modeling language, written in Python, for solving these problems. You can find the GitHub repo <a href="https://github.com/bmeyers/optimal-signal-demixing/">here</a>.</li>
+</ul>
+:ET

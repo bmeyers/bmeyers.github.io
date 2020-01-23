@@ -1,0 +1,479 @@
+I"�i<p><em>Using quantile regression to fit the clear sky signal in a daily solar energy data set.</em></p>
+
+<h2 id="introduction">Introduction</h2>
+
+<p>Convex optimization provides a great framework for generalized data fitting and model building. In this post, we’ll explore the concept of “quantile regression” which allows us to approximately fit a certain quantile of a residual distribution. This is particularly useful when your residuals are not normally distributed. Along the way, we’ll also talk about convex optimization as a framework for generalized model fitting and smoothing.</p>
+
+<p>To motivate this discussion, we’ll work with the daily energy signal from a photovoltaic device. We’ll be looking at <a href="https://pvpmc.sandia.gov/modeling-steps/1-weather-design-inputs/irradiance-and-insolation-2/global-horizontal-irradiance/">global horizontal irradiance</a> data as measured by a <a href="https://en.wikipedia.org/wiki/Pyranometer">pyranometer</a>.</p>
+
+<p>This post is laid out as follows:</p>
+
+<ol>
+  <li><a href="#the-data">The data</a></li>
+  <li><a href="#background-on-statistical-smoothing">Background on statistical smoothing</a></li>
+  <li><a href="#robust-estimation">Robust estimation</a></li>
+  <li><a href="#quantile-regression">Quantile regression</a></li>
+  <li><a href="#conclusion--what-next">Conclusion / what next?</a></li>
+</ol>
+
+<h2 id="the-data">The data</h2>
+
+<p>As always, we begin with some standard imports.</p>
+
+<figure class="highlight"><pre><code class="language-python" data-lang="python"><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="n">np</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="n">pd</span>
+<span class="kn">import</span> <span class="nn">cvxpy</span> <span class="k">as</span> <span class="n">cvx</span>
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="n">plt</span>
+<span class="o">%</span><span class="n">matplotlib</span> <span class="n">inline</span>
+<span class="kn">import</span> <span class="nn">seaborn</span> <span class="k">as</span> <span class="n">sns</span>
+<span class="n">sns</span><span class="o">.</span><span class="nb">set</span><span class="p">(</span><span class="n">context</span><span class="o">=</span><span class="s">'talk'</span><span class="p">,</span> <span class="n">palette</span><span class="o">=</span><span class="s">'colorblind'</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="s">'darkgrid'</span><span class="p">)</span></code></pre></figure>
+
+<p>We’re grabbing data from NREL’s <a href="http://rredc.nrel.gov/solar/old_data/nsrdb/">National Solar Radiation Data Base</a>. We have arbitrarily selected the 2010 data set for <code class="highlighter-rouge">USAF #723013 - WILMINGTON INTERNATIONAL ARPT, NC</code>. Here we show off how easy <code class="highlighter-rouge">pandas</code> makes it to load <code class="highlighter-rouge">csv</code> files hosted on the internet.</p>
+
+<figure class="highlight"><pre><code class="language-python" data-lang="python"><span class="n">link</span> <span class="o">=</span> <span class="s">'http://rredc.nrel.gov/solar/old_data/nsrdb/1991-2010/data/hourly/723013/723013_2010_solar.csv'</span>
+<span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">link</span><span class="p">,</span> <span class="n">index_col</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">])</span>
+<span class="k">print</span> <span class="n">df</span><span class="o">.</span><span class="n">head</span><span class="p">()</span></code></pre></figure>
+
+<figure class="highlight"><pre><code class="language-python" data-lang="python">                            <span class="n">Zenith</span> <span class="p">(</span><span class="n">deg</span><span class="p">)</span>  <span class="n">Azimuth</span> <span class="p">(</span><span class="n">deg</span><span class="p">)</span>  <span class="n">ETR</span> <span class="p">(</span><span class="n">Wh</span><span class="o">/</span><span class="n">m</span><span class="o">^</span><span class="mi">2</span><span class="p">)</span>  \
+    <span class="n">YYYY</span><span class="o">-</span><span class="n">MM</span><span class="o">-</span><span class="n">DD</span> <span class="n">HH</span><span class="p">:</span><span class="n">MM</span> <span class="p">(</span><span class="n">LST</span><span class="p">)</span>                                              
+    <span class="mi">2010</span><span class="o">-</span><span class="mi">01</span><span class="o">-</span><span class="mi">01</span> <span class="mi">1</span><span class="p">:</span><span class="mi">00</span>                 <span class="mf">99.0</span>          <span class="o">-</span><span class="mf">99.0</span>             <span class="mi">0</span>   
+               <span class="mi">2</span><span class="p">:</span><span class="mi">00</span>                 <span class="mf">99.0</span>          <span class="o">-</span><span class="mf">99.0</span>             <span class="mi">0</span>   
+               <span class="mi">3</span><span class="p">:</span><span class="mi">00</span>                 <span class="mf">99.0</span>          <span class="o">-</span><span class="mf">99.0</span>             <span class="mi">0</span>   
+               <span class="mi">4</span><span class="p">:</span><span class="mi">00</span>                 <span class="mf">99.0</span>          <span class="o">-</span><span class="mf">99.0</span>             <span class="mi">0</span>   
+               <span class="mi">5</span><span class="p">:</span><span class="mi">00</span>                 <span class="mf">99.0</span>          <span class="o">-</span><span class="mf">99.0</span>             <span class="mi">0</span>   
+    
+                            <span class="n">ETRN</span> <span class="p">(</span><span class="n">Wh</span><span class="o">/</span><span class="n">m</span><span class="o">^</span><span class="mi">2</span><span class="p">)</span>  <span class="n">SUNY</span> <span class="n">Glo</span> <span class="p">(</span><span class="n">Wh</span><span class="o">/</span><span class="n">m</span><span class="o">^</span><span class="mi">2</span><span class="p">)</span>  <span class="n">SUNY</span> <span class="n">Glo</span> <span class="n">Flg</span>  \
+    <span class="n">YYYY</span><span class="o">-</span><span class="n">MM</span><span class="o">-</span><span class="n">DD</span> <span class="n">HH</span><span class="p">:</span><span class="n">MM</span> <span class="p">(</span><span class="n">LST</span><span class="p">)</span>                                                   
+    <span class="mi">2010</span><span class="o">-</span><span class="mi">01</span><span class="o">-</span><span class="mi">01</span> <span class="mi">1</span><span class="p">:</span><span class="mi">00</span>                     <span class="mi">0</span>              <span class="o">-</span><span class="mi">9900</span>            <span class="mi">99</span>   
+               <span class="mi">2</span><span class="p">:</span><span class="mi">00</span>                     <span class="mi">0</span>              <span class="o">-</span><span class="mi">9900</span>            <span class="mi">99</span>   
+               <span class="mi">3</span><span class="p">:</span><span class="mi">00</span>                     <span class="mi">0</span>              <span class="o">-</span><span class="mi">9900</span>            <span class="mi">99</span>   
+               <span class="mi">4</span><span class="p">:</span><span class="mi">00</span>                     <span class="mi">0</span>              <span class="o">-</span><span class="mi">9900</span>            <span class="mi">99</span>   
+               <span class="mi">5</span><span class="p">:</span><span class="mi">00</span>                     <span class="mi">0</span>              <span class="o">-</span><span class="mi">9900</span>            <span class="mi">99</span>   
+    
+                            <span class="n">SUNY</span> <span class="n">Glo</span> <span class="n">Unc</span> <span class="p">(</span><span class="o">%</span><span class="p">)</span>  <span class="n">SUNY</span> <span class="n">Dir</span> <span class="p">(</span><span class="n">Wh</span><span class="o">/</span><span class="n">m</span><span class="o">^</span><span class="mi">2</span><span class="p">)</span>  <span class="n">SUNY</span> <span class="n">Dir</span> <span class="n">Flg</span>  \
+    <span class="n">YYYY</span><span class="o">-</span><span class="n">MM</span><span class="o">-</span><span class="n">DD</span> <span class="n">HH</span><span class="p">:</span><span class="n">MM</span> <span class="p">(</span><span class="n">LST</span><span class="p">)</span>                                                      
+    <span class="mi">2010</span><span class="o">-</span><span class="mi">01</span><span class="o">-</span><span class="mi">01</span> <span class="mi">1</span><span class="p">:</span><span class="mi">00</span>                    <span class="o">-</span><span class="mi">9900</span>              <span class="o">-</span><span class="mi">9900</span>            <span class="mi">99</span>   
+               <span class="mi">2</span><span class="p">:</span><span class="mi">00</span>                    <span class="o">-</span><span class="mi">9900</span>              <span class="o">-</span><span class="mi">9900</span>            <span class="mi">99</span>   
+               <span class="mi">3</span><span class="p">:</span><span class="mi">00</span>                    <span class="o">-</span><span class="mi">9900</span>              <span class="o">-</span><span class="mi">9900</span>            <span class="mi">99</span>   
+               <span class="mi">4</span><span class="p">:</span><span class="mi">00</span>                    <span class="o">-</span><span class="mi">9900</span>              <span class="o">-</span><span class="mi">9900</span>            <span class="mi">99</span>   
+               <span class="mi">5</span><span class="p">:</span><span class="mi">00</span>                    <span class="o">-</span><span class="mi">9900</span>              <span class="o">-</span><span class="mi">9900</span>            <span class="mi">99</span>   
+    
+                            <span class="n">SUNY</span> <span class="n">Dir</span> <span class="n">Unc</span> <span class="p">(</span><span class="o">%</span><span class="p">)</span>     <span class="o">...</span>      <span class="n">Precip</span> <span class="n">Wat</span> <span class="p">(</span><span class="n">cm</span><span class="p">)</span>  \
+    <span class="n">YYYY</span><span class="o">-</span><span class="n">MM</span><span class="o">-</span><span class="n">DD</span> <span class="n">HH</span><span class="p">:</span><span class="n">MM</span> <span class="p">(</span><span class="n">LST</span><span class="p">)</span>                       <span class="o">...</span>                        
+    <span class="mi">2010</span><span class="o">-</span><span class="mi">01</span><span class="o">-</span><span class="mi">01</span> <span class="mi">1</span><span class="p">:</span><span class="mi">00</span>                    <span class="o">-</span><span class="mi">9900</span>     <span class="o">...</span>                  <span class="mf">2.5</span>   
+               <span class="mi">2</span><span class="p">:</span><span class="mi">00</span>                    <span class="o">-</span><span class="mi">9900</span>     <span class="o">...</span>                  <span class="mf">2.4</span>   
+               <span class="mi">3</span><span class="p">:</span><span class="mi">00</span>                    <span class="o">-</span><span class="mi">9900</span>     <span class="o">...</span>                  <span class="mf">2.4</span>   
+               <span class="mi">4</span><span class="p">:</span><span class="mi">00</span>                    <span class="o">-</span><span class="mi">9900</span>     <span class="o">...</span>                  <span class="mf">2.3</span>   
+               <span class="mi">5</span><span class="p">:</span><span class="mi">00</span>                    <span class="o">-</span><span class="mi">9900</span>     <span class="o">...</span>                  <span class="mf">1.9</span>   
+    
+                            <span class="n">Precip</span> <span class="n">Wat</span> <span class="n">Flg</span>  <span class="n">AOD</span> <span class="p">(</span><span class="n">unitless</span><span class="p">)</span>  <span class="n">AOD</span> <span class="n">Flg</span>  \
+    <span class="n">YYYY</span><span class="o">-</span><span class="n">MM</span><span class="o">-</span><span class="n">DD</span> <span class="n">HH</span><span class="p">:</span><span class="n">MM</span> <span class="p">(</span><span class="n">LST</span><span class="p">)</span>                                            
+    <span class="mi">2010</span><span class="o">-</span><span class="mi">01</span><span class="o">-</span><span class="mi">01</span> <span class="mi">1</span><span class="p">:</span><span class="mi">00</span>                      <span class="mi">3</span>           <span class="mf">0.072</span>        <span class="mi">1</span>   
+               <span class="mi">2</span><span class="p">:</span><span class="mi">00</span>                     <span class="mi">51</span>           <span class="mf">0.072</span>        <span class="mi">1</span>   
+               <span class="mi">3</span><span class="p">:</span><span class="mi">00</span>                     <span class="mi">51</span>           <span class="mf">0.072</span>        <span class="mi">1</span>   
+               <span class="mi">4</span><span class="p">:</span><span class="mi">00</span>                      <span class="mi">3</span>           <span class="mf">0.072</span>        <span class="mi">1</span>   
+               <span class="mi">5</span><span class="p">:</span><span class="mi">00</span>                     <span class="mi">51</span>           <span class="mf">0.072</span>        <span class="mi">1</span>   
+    
+                            <span class="n">AOD</span> <span class="n">RAN</span> <span class="p">(</span><span class="n">unitless</span><span class="p">)</span>   <span class="n">AOD</span> <span class="n">RAN</span> <span class="n">Flg</span>  <span class="n">Ozone</span> <span class="p">(</span><span class="n">cm</span><span class="p">)</span>  \
+    <span class="n">YYYY</span><span class="o">-</span><span class="n">MM</span><span class="o">-</span><span class="n">DD</span> <span class="n">HH</span><span class="p">:</span><span class="n">MM</span> <span class="p">(</span><span class="n">LST</span><span class="p">)</span>                                                 
+    <span class="mi">2010</span><span class="o">-</span><span class="mi">01</span><span class="o">-</span><span class="mi">01</span> <span class="mi">1</span><span class="p">:</span><span class="mi">00</span>                      <span class="mf">0.072</span>             <span class="mi">1</span>       <span class="mf">0.278</span>   
+               <span class="mi">2</span><span class="p">:</span><span class="mi">00</span>                      <span class="mf">0.072</span>             <span class="mi">1</span>       <span class="mf">0.280</span>   
+               <span class="mi">3</span><span class="p">:</span><span class="mi">00</span>                      <span class="mf">0.072</span>             <span class="mi">1</span>       <span class="mf">0.282</span>   
+               <span class="mi">4</span><span class="p">:</span><span class="mi">00</span>                      <span class="mf">0.072</span>             <span class="mi">1</span>       <span class="mf">0.284</span>   
+               <span class="mi">5</span><span class="p">:</span><span class="mi">00</span>                      <span class="mf">0.072</span>             <span class="mi">1</span>       <span class="mf">0.287</span>   
+    
+                            <span class="n">Ozone</span> <span class="n">Flg</span>  <span class="n">Albedo</span> <span class="p">(</span><span class="n">unitless</span><span class="p">)</span>  <span class="n">Albedo</span> <span class="n">Flg</span>  
+    <span class="n">YYYY</span><span class="o">-</span><span class="n">MM</span><span class="o">-</span><span class="n">DD</span> <span class="n">HH</span><span class="p">:</span><span class="n">MM</span> <span class="p">(</span><span class="n">LST</span><span class="p">)</span>                                            
+    <span class="mi">2010</span><span class="o">-</span><span class="mi">01</span><span class="o">-</span><span class="mi">01</span> <span class="mi">1</span><span class="p">:</span><span class="mi">00</span>                 <span class="mi">2</span>               <span class="mf">0.14</span>           <span class="mi">0</span>  
+               <span class="mi">2</span><span class="p">:</span><span class="mi">00</span>                <span class="mi">51</span>               <span class="mf">0.14</span>           <span class="mi">0</span>  
+               <span class="mi">3</span><span class="p">:</span><span class="mi">00</span>                <span class="mi">51</span>               <span class="mf">0.14</span>           <span class="mi">0</span>  
+               <span class="mi">4</span><span class="p">:</span><span class="mi">00</span>                <span class="mi">51</span>               <span class="mf">0.14</span>           <span class="mi">0</span>  
+               <span class="mi">5</span><span class="p">:</span><span class="mi">00</span>                <span class="mi">51</span>               <span class="mf">0.14</span>           <span class="mi">0</span>  
+    
+    <span class="p">[</span><span class="mi">5</span> <span class="n">rows</span> <span class="n">x</span> <span class="mi">41</span> <span class="n">columns</span><span class="p">]</span></code></pre></figure>
+
+<p>So easy! Next, we isolate the global horizonal irradiance (GHI) column from this data table.</p>
+
+<figure class="highlight"><pre><code class="language-python" data-lang="python"><span class="n">ghi</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="s">'METSTAT Glo (Wh/m^2)'</span><span class="p">]</span><span class="o">.</span><span class="n">as_matrix</span><span class="p">()</span></code></pre></figure>
+
+<p>It’s always a good idea to plot your data before working with it, so let’s take a quick look. Below we see the first five days of the data set. The first day is pretty cloudy and the next four are clearer.</p>
+
+<figure class="highlight"><pre><code class="language-python" data-lang="python"><span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">ghi</span><span class="p">[:</span><span class="mi">24</span><span class="o">*</span><span class="mi">5</span><span class="p">])</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s">'Hour of day'</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xticks</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">24</span><span class="o">*</span><span class="mi">5</span><span class="p">,</span> <span class="mi">6</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">24</span><span class="p">,</span> <span class="mi">6</span><span class="p">),</span> <span class="mi">5</span><span class="p">))</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s">'W/m^2'</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s">'Hourly average GHI over 5 days'</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span></code></pre></figure>
+
+<p><img src="http://localhost:4000/assets/QuantileRegression_7_0.png" alt="png" /></p>
+
+<p>I really like “heatmap” views for solar data sets. It allows us to easily view all the data at once, and it emphasizes the seasonal structure of the data.</p>
+
+<figure class="highlight"><pre><code class="language-python" data-lang="python"><span class="k">with</span> <span class="n">sns</span><span class="o">.</span><span class="n">axes_style</span><span class="p">(</span><span class="s">"white"</span><span class="p">):</span>
+    <span class="n">fig</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">16</span><span class="p">,</span><span class="mi">8</span><span class="p">))</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">ghi</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="mi">24</span><span class="p">,</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="n">order</span><span class="o">=</span><span class="s">'F'</span><span class="p">),</span> <span class="n">cmap</span><span class="o">=</span><span class="s">'hot'</span><span class="p">,</span> <span class="n">aspect</span><span class="o">=</span><span class="s">'auto'</span><span class="p">,</span> <span class="n">interpolation</span><span class="o">=</span><span class="s">'none'</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">colorbar</span><span class="p">(</span><span class="n">label</span><span class="o">=</span><span class="s">'W/m^2'</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s">'Hourly average GHI over a full year'</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s">'Hour of day'</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s">'Day number'</span><span class="p">)</span></code></pre></figure>
+
+<p><img src="http://localhost:4000/assets/QuantileRegression_9_0.png" alt="png" /></p>
+
+<p>We can clearly see the longer, sunnier days in the summer and the shorter, less energetic days in the winter. On top of this longer seasonal pattern, we observe the impact of weather and clouds as the darker “noise”.</p>
+
+<p>Getting to the point, we run a simple statistic on the data: the daily sum. This gives us total <em>total daily insolation</em>, which is energy per unit area. The sunnier a day, the higher its insolation.</p>
+
+<figure class="highlight"><pre><code class="language-python" data-lang="python"><span class="n">daily_insol</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="nb">sum</span><span class="p">(</span><span class="n">ghi</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">24</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="mf">1000.</span></code></pre></figure>
+
+<figure class="highlight"><pre><code class="language-python" data-lang="python"><span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">daily_insol</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s">'kWh/m^2'</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s">'Day'</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s">'Daily measured insolation (energy per unit area)'</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlim</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">365</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span></code></pre></figure>
+
+<p><img src="http://localhost:4000/assets/QuantileRegression_12_0.png" alt="png" /></p>
+
+<p>As with the image/heatmap view of the hourly irradiance data, we see a clear seasonal structure with deviations caused by intermittant weather phenomenon. There appears to be sharp maximum cutoff that changes slowly over the course of the year, with deviations from this cutoff always in the negative direction. This sharp maximum is related the concept of “clear sky performance,” or how much power a PV system (or irradiance sensor) produces when the sky is clear. For that reason, we may be interested in describing this maximum cutoff. This is what we’ll use quantile regression to find.</p>
+
+<h2 id="background-on-statistical-smoothing">Background on statistical smoothing</h2>
+
+<p>There are a large number tools available to the analyst who wishes to perform a smoothing fit of a dataset. You’ve got your <a href="https://docs.scipy.org/doc/scipy-0.14.0/reference/generated/scipy.interpolate.UnivariateSpline.html">smoothing splines</a>, <a href="https://en.wikipedia.org/wiki/Kernel_smoother">kernal smoothing</a>, and <a href="https://en.wikipedia.org/wiki/Local_regression">local regression</a>. All these techniques take observed samples $(x_i,y_i)$ for $i=1,\ldots,n$, and attempt to fit a smooth function $\hat{y}=\hat{f}(x)$ to the given data. Unlike traditional regression or function fitting, very little is assumed about the underlying model. The amount of “smoothing” induced by these techniques is controlled by selecting the size of the “neighborhood”, the larger the neighborhood, the more data used in every point estimate of the smooth function, the smoother the result. They all make the assumption that was we observe is some smooth function corrupted by Gaussian noise and more or less provide an estimate of the local average of the data.</p>
+
+<p>A nearly identical result can be derived via convex optimization. In this context, we encode our observations as elements of a vector $y\in\mathbf{R}^n$. Then, we try to find an approximation $\hat{y}\in\mathbf{R}^n$ that close to $y$ in terms of root-mean-square error while also being smooth. We estimate smoothness as the discrete approximation of the first or second derivative of the signal, given by the <a href="https://en.wikipedia.org/wiki/Finite_difference">finite difference operator</a> $\mathcal{D}$, where first-order difference is an approximation of the first derivative and the second-order difference is an approximation of the second derivative. This gives us the following convex optimization problem</p>
+
+<script type="math/tex; mode=display">% <![CDATA[
+\begin{alignat*}{2}
+& \underset{\hat{y}\in\mathbf{R}^n}{\text{minimize}}
+& & \quad \left\lVert y - \hat{y} \right\rVert_2 + \mu \left\lVert \mathcal{D} \hat{y} \right\rVert_2
+\end{alignat*} %]]></script>
+
+<p>When $\mu$ is equal to zero, the solution to the above problem is exactly $\hat{y}=y$, but a non-zero $\mu$ gives us the kind of standard smoothing we’d expect from the classic methods mentioned above. We call this a <em>non-parametric model</em> because our model $(\hat{y})$ has exactly as many free parameters as the data itself $(y)$. Because we’re minimizing the $\ell_2$-norm of the difference operator, we call this quadradic smoothing (as opposed to, say, minimizing <a href="https://en.wikipedia.org/wiki/Total_variation">total variation</a>, based on the $\ell_1$-norm.) Below we see how first- and second-order difference smoothing works with our daily insolation data, at various values of $\mu$.</p>
+
+<blockquote>
+  <h5 id="side-note-why-do-we-care-about-formulating-things-as-convex-optimization-problems">Side note: Why do we care about formulating things as convex optimization problems?</h5>
+
+  <p>Two reasons. One, convexity guarantees that the problem has a single, global minimum and no other local minima. Two, convex optimization problems are easy to solve. We have efficient algorithms for solving these problems and methods to scale them up to very large data sets. As a counter example, stochastic gradient descent (SGD) can minimize just about any function (including non-convex ones), but it’s pretty slow. In general, there tends to be a tradeoff between robustness and speed. Algorithms that are guaranteed to work on every problem, like SDG, tend not to be very fast because they are not exploiting any structure in the problem. Non-robust algorithms only work on problems with a specific type of structure, but are extremely efficient. A classic example is least-squares regression, which is a convex optimization problem with a closed form solution, no SGD needed.</p>
+</blockquote>
+
+<h4 id="first-order-difference-quadratic-smoothing">First-order difference, quadratic smoothing</h4>
+
+<p>The first order difference of vector $x\in\mathbf{R}^n$ is a linear transform given by the matrix</p>
+
+<script type="math/tex; mode=display">% <![CDATA[
+\mathcal{D}_1 = \left[\begin{matrix} -1 & 1 & 0 & \cdots & 0 & 0 & 0 \\
+0& -1 & 1 & \cdots & 0 & 0 & 0 \\
+0 & 0 & -1 & \cdots & 0 & 0 & 0 \\
+\vdots & \vdots & \vdots &\ddots & \vdots & \vdots & \vdots \\
+0 & 0 & 0 & \cdots & -1 & 1 & 0 \\
+0 & 0 & 0 & \cdots & 0 & -1 & 1\end{matrix}\right] \in \mathbf{R}^{(n-1)\times n} %]]></script>
+
+<p>If $y=\mathcal{D}<em>1 x$, then $y_i = x</em>{i+1}-x_i$. So, as long as the measurements are evenly spaced, this transform gives the slope between each pair of measurements. Driving this metric to zero results in an estimate with no slope, i.e. a constant value.</p>
+
+<p>Here we use <code class="highlighter-rouge">cvxpy</code> to set up the optimization problem for this smoothing.</p>
+
+<figure class="highlight"><pre><code class="language-python" data-lang="python"><span class="n">fit</span> <span class="o">=</span> <span class="n">cvx</span><span class="o">.</span><span class="n">Variable</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">daily_insol</span><span class="p">))</span>
+<span class="n">mu</span> <span class="o">=</span> <span class="n">cvx</span><span class="o">.</span><span class="n">Parameter</span><span class="p">(</span><span class="n">sign</span><span class="o">=</span><span class="s">'positive'</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="mf">1e3</span><span class="p">)</span>
+<span class="n">objective</span> <span class="o">=</span> <span class="n">cvx</span><span class="o">.</span><span class="n">Minimize</span><span class="p">(</span><span class="n">cvx</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">daily_insol</span> <span class="o">-</span> <span class="n">fit</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span> <span class="o">+</span> <span class="n">mu</span> <span class="o">*</span> <span class="n">cvx</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">cvx</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="n">fit</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="mi">2</span><span class="p">))</span>
+<span class="n">problem</span> <span class="o">=</span> <span class="n">cvx</span><span class="o">.</span><span class="n">Problem</span><span class="p">(</span><span class="n">objective</span><span class="p">)</span></code></pre></figure>
+
+<p>Next we iterate over values of $\mu$…</p>
+
+<figure class="highlight"><pre><code class="language-python" data-lang="python"><span class="n">fits</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="n">mus</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">logspace</span><span class="p">(</span><span class="o">-</span><span class="mf">0.5</span><span class="p">,</span> <span class="mf">1.7</span><span class="p">,</span> <span class="mi">7</span><span class="p">)</span>
+<span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="n">mus</span><span class="p">:</span>
+    <span class="n">mu</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="n">m</span>
+    <span class="n">problem</span><span class="o">.</span><span class="n">solve</span><span class="p">(</span><span class="n">solver</span><span class="o">=</span><span class="s">'MOSEK'</span><span class="p">)</span>
+    <span class="n">fits</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">fit</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">A1</span><span class="p">)</span></code></pre></figure>
+
+<p>…and plot the results.</p>
+
+<figure class="highlight"><pre><code class="language-python" data-lang="python"><span class="n">colors</span> <span class="o">=</span> <span class="n">sns</span><span class="o">.</span><span class="n">cubehelix_palette</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">mus</span><span class="p">),</span> <span class="n">light</span><span class="o">=</span><span class="mf">0.75</span><span class="p">)</span>
+<span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">xrange</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">mus</span><span class="p">)):</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">fits</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">color</span><span class="o">=</span><span class="n">colors</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">label</span><span class="o">=</span><span class="s">'$</span><span class="se">\\</span><span class="s">mu={:.2f}$'</span><span class="o">.</span><span class="nb">format</span><span class="p">(</span><span class="n">mus</span><span class="p">[</span><span class="n">i</span><span class="p">]))</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">daily_insol</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">ls</span><span class="o">=</span><span class="s">':'</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s">'measured data'</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">loc</span><span class="o">=</span><span class="p">[</span><span class="mf">1.01</span><span class="p">,</span> <span class="mf">0.4</span><span class="p">])</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s">'Quadradic smoothing on first-order difference</span><span class="se">\n</span><span class="s">for various $</span><span class="se">\\</span><span class="s">mu$'</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s">'kWh/m^2'</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s">'Day'</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlim</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">365</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span></code></pre></figure>
+
+<p><img src="http://localhost:4000/assets/QuantileRegression_17_0.png" alt="png" /></p>
+
+<p>We see that when $\mu$ is very small, the observed data is exactly reconstructed and no smoothing is performed. For very large $\mu$, the estimate is a perfectly flat line, at the average of the data set. In between, we observe varying levels of smoothing. At about $\mu=20$, we get an approximation that kind of looks like a seasonal trend, but it’s not great. It definitely is not capturing the shape of the upper envelope of the signal.</p>
+
+<h4 id="second-order-difference-quadratic-smoothing">Second-order difference, quadratic smoothing</h4>
+
+<p>We approximate the local second derivative of the signal through the second order difference of vector $x\in\mathbf{R}^n$, which is a linear transform given by the matrix</p>
+
+<script type="math/tex; mode=display">% <![CDATA[
+\mathcal{D}_2 = \left[\begin{matrix} 
+1 & -2 & 1 & \cdots & 0 & 0 & 0 & 0 \\
+0& 1 & -2 & \cdots & 0 & 0 & 0 & 0 \\
+0 & 0 & 1 & \cdots & 0 & 0 & 0 & 0 \\
+\vdots & \vdots & \vdots &\ddots & \vdots & \vdots & \vdots & \vdots \\
+0 & 0 & 0 & \cdots & 1 & -2 & 1 & 0 \\
+0 & 0 & 0 & \cdots & 0 & 1 & -2 & 1\end{matrix}\right] \in \mathbf{R}^{(n-2)\times n} %]]></script>
+
+<p>If $y=\mathcal{D}<em>2 x$, then $y_i = x</em>{i}-2x_{i+1} + x_{i+2}$. So, as long as the measurements are evenly spaced, this transform gives the discrete estimate of the local curvature. Driving this metric to zero results in an estimate with constant slope, i.e. an affine function.</p>
+
+<figure class="highlight"><pre><code class="language-python" data-lang="python"><span class="n">fit</span> <span class="o">=</span> <span class="n">cvx</span><span class="o">.</span><span class="n">Variable</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">daily_insol</span><span class="p">))</span>
+<span class="n">mu</span> <span class="o">=</span> <span class="n">cvx</span><span class="o">.</span><span class="n">Parameter</span><span class="p">(</span><span class="n">sign</span><span class="o">=</span><span class="s">'positive'</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="mf">1e3</span><span class="p">)</span>
+<span class="n">objective</span> <span class="o">=</span> <span class="n">cvx</span><span class="o">.</span><span class="n">Minimize</span><span class="p">(</span><span class="n">cvx</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">daily_insol</span> <span class="o">-</span> <span class="n">fit</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span> <span class="o">+</span> <span class="n">mu</span> <span class="o">*</span> <span class="n">cvx</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">cvx</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="n">fit</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="mi">2</span><span class="p">))</span>
+<span class="n">problem</span> <span class="o">=</span> <span class="n">cvx</span><span class="o">.</span><span class="n">Problem</span><span class="p">(</span><span class="n">objective</span><span class="p">)</span></code></pre></figure>
+
+<figure class="highlight"><pre><code class="language-python" data-lang="python"><span class="n">fits</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="n">mus</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">logspace</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mf">3.7</span><span class="p">,</span> <span class="mi">7</span><span class="p">)</span>
+<span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="n">mus</span><span class="p">:</span>
+    <span class="n">mu</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="n">m</span>
+    <span class="n">problem</span><span class="o">.</span><span class="n">solve</span><span class="p">(</span><span class="n">solver</span><span class="o">=</span><span class="s">'MOSEK'</span><span class="p">)</span>
+    <span class="n">fits</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">fit</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">A1</span><span class="p">)</span></code></pre></figure>
+
+<figure class="highlight"><pre><code class="language-python" data-lang="python"><span class="n">colors</span> <span class="o">=</span> <span class="n">sns</span><span class="o">.</span><span class="n">cubehelix_palette</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">mus</span><span class="p">),</span> <span class="n">light</span><span class="o">=</span><span class="mf">0.75</span><span class="p">)</span>
+<span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">xrange</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">mus</span><span class="p">)):</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">fits</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">color</span><span class="o">=</span><span class="n">colors</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">label</span><span class="o">=</span><span class="s">'$</span><span class="se">\\</span><span class="s">mu={:.2f}$'</span><span class="o">.</span><span class="nb">format</span><span class="p">(</span><span class="n">mus</span><span class="p">[</span><span class="n">i</span><span class="p">]))</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">daily_insol</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">ls</span><span class="o">=</span><span class="s">':'</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s">'measured data'</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">loc</span><span class="o">=</span><span class="p">[</span><span class="mf">1.01</span><span class="p">,</span> <span class="mf">0.4</span><span class="p">])</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s">'Quadradic smoothing on first-order difference</span><span class="se">\n</span><span class="s">for various $</span><span class="se">\\</span><span class="s">mu$'</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s">'kWh/m^2'</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s">'Day'</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlim</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">365</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span></code></pre></figure>
+
+<p><img src="http://localhost:4000/assets/QuantileRegression_22_0.png" alt="png" /></p>
+
+<p>Here’s the behavior of quadratic smoothing on the second-order difference. As with the last example, when $\mu$ is very small, the estimate exactly matches in the imput data. As expected, we get an affine function rather than a constant function at large $\mu$.</p>
+
+<p>Interestingly, the range of $\mu$ is much wider in this example than the last one. This is actually desirable behavior. We are not usually interested in the behavior at the extremes ($\mu$ very small or vary large), but in the the middle, where rapid fluctuations are smoothed out but the large scale behavior isn’t lost. Quadratic smoothing on the second-order difference has a much larger <em>stable region</em> of values of $\mu$ as compared to the first-order difference.</p>
+
+<p>Below, we compare the best solutions for both methods.</p>
+
+<figure class="highlight"><pre><code class="language-python" data-lang="python"><span class="n">fit</span> <span class="o">=</span> <span class="n">cvx</span><span class="o">.</span><span class="n">Variable</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">daily_insol</span><span class="p">))</span>
+<span class="n">mu</span> <span class="o">=</span> <span class="n">cvx</span><span class="o">.</span><span class="n">Parameter</span><span class="p">(</span><span class="n">sign</span><span class="o">=</span><span class="s">'positive'</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="mi">20</span><span class="p">)</span>
+<span class="n">objective</span> <span class="o">=</span> <span class="n">cvx</span><span class="o">.</span><span class="n">Minimize</span><span class="p">(</span><span class="n">cvx</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">daily_insol</span> <span class="o">-</span> <span class="n">fit</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span> <span class="o">+</span> <span class="n">mu</span> <span class="o">*</span> <span class="n">cvx</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">cvx</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="n">fit</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="mi">2</span><span class="p">))</span>
+<span class="n">problem</span> <span class="o">=</span> <span class="n">cvx</span><span class="o">.</span><span class="n">Problem</span><span class="p">(</span><span class="n">objective</span><span class="p">)</span>
+<span class="n">problem</span><span class="o">.</span><span class="n">solve</span><span class="p">(</span><span class="n">solver</span><span class="o">=</span><span class="s">'MOSEK'</span><span class="p">)</span>
+<span class="n">fits</span> <span class="o">=</span> <span class="p">[</span><span class="n">fit</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">A1</span><span class="p">]</span>
+<span class="n">mu</span> <span class="o">=</span> <span class="n">cvx</span><span class="o">.</span><span class="n">Parameter</span><span class="p">(</span><span class="n">sign</span><span class="o">=</span><span class="s">'positive'</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="mf">1e2</span><span class="p">)</span>
+<span class="n">objective</span> <span class="o">=</span> <span class="n">cvx</span><span class="o">.</span><span class="n">Minimize</span><span class="p">(</span><span class="n">cvx</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">daily_insol</span> <span class="o">-</span> <span class="n">fit</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span> <span class="o">+</span> <span class="n">mu</span> <span class="o">*</span> <span class="n">cvx</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">cvx</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="n">fit</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="mi">2</span><span class="p">))</span>
+<span class="n">problem</span> <span class="o">=</span> <span class="n">cvx</span><span class="o">.</span><span class="n">Problem</span><span class="p">(</span><span class="n">objective</span><span class="p">)</span>
+<span class="n">problem</span><span class="o">.</span><span class="n">solve</span><span class="p">(</span><span class="n">solver</span><span class="o">=</span><span class="s">'MOSEK'</span><span class="p">)</span>
+<span class="n">fits</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">fit</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">A1</span><span class="p">)</span></code></pre></figure>
+
+<figure class="highlight"><pre><code class="language-python" data-lang="python"><span class="n">colors</span> <span class="o">=</span> <span class="n">sns</span><span class="o">.</span><span class="n">dark_palette</span><span class="p">(</span><span class="s">'green'</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">fits</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">color</span><span class="o">=</span><span class="n">colors</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">label</span><span class="o">=</span><span class="s">'first diff, $</span><span class="se">\\</span><span class="s">mu=20$'</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">fits</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">color</span><span class="o">=</span><span class="n">colors</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">label</span><span class="o">=</span><span class="s">'second diff, $</span><span class="se">\\</span><span class="s">mu=100$'</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">daily_insol</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">ls</span><span class="o">=</span><span class="s">':'</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s">'measured data'</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">loc</span><span class="o">=</span><span class="p">[</span><span class="mf">1.01</span><span class="p">,</span> <span class="mf">0.4</span><span class="p">])</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s">'Quadradic smoothing, comparing first- and second-order differences'</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s">'kWh/m^2'</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s">'Day'</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlim</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">365</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span></code></pre></figure>
+
+<p><img src="http://localhost:4000/assets/QuantileRegression_25_0.png" alt="png" /></p>
+
+<p>While the second-order difference appears to be a bit better (smoother without attenuating the seasonal fluctuation), neither of these approaches does a very good job explaining our GHI data. In particular, we most certainly do not have a good estimate of that hard maximum cutoff that that is associated to clear sky performance. This brings us to…</p>
+
+<h2 id="robust-estimation">Robust estimation</h2>
+
+<p>Robust statistical estimation is primarly concerned with developing techniques that do not rely on the assumption that errors are normally distributed. A common approach to this problem is to replace the $\ell_2$-loss (RMSE) used in our previous formulation with the $\ell_1$-loss.</p>
+
+<script type="math/tex; mode=display">% <![CDATA[
+\begin{alignat*}{2}
+& \text{minimize}
+& & \quad \left\lVert y - \hat{y} \right\rVert_1 + \mu \left\lVert \mathcal{D} \hat{y} \right\rVert_2
+\end{alignat*} %]]></script>
+
+<p>All norms, including the $\ell_1$-norm, are convex functions, so this is still a convex optimization problem. This loss function is linear with increasing residual values. Unlike the $\ell_2$-loss, the $\ell_1$-loss does not “blow up” in the presence of large residuals, making it more resilliant to outliers in the data. Roughly speaking, we can think of this function as fitting the local median of the data, rather than the local average.</p>
+
+<p>Below, we compare the $\ell_1$-loss to the $\ell_2$-loss. Both forulations use quadratic smoothing on the second-order difference.</p>
+
+<figure class="highlight"><pre><code class="language-python" data-lang="python"><span class="n">fit</span> <span class="o">=</span> <span class="n">cvx</span><span class="o">.</span><span class="n">Variable</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">daily_insol</span><span class="p">))</span>
+<span class="n">mu</span> <span class="o">=</span> <span class="n">cvx</span><span class="o">.</span><span class="n">Parameter</span><span class="p">(</span><span class="n">sign</span><span class="o">=</span><span class="s">'positive'</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="mf">1.3e3</span><span class="p">)</span>
+<span class="n">objective</span> <span class="o">=</span> <span class="n">cvx</span><span class="o">.</span><span class="n">Minimize</span><span class="p">(</span><span class="n">cvx</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">daily_insol</span> <span class="o">-</span> <span class="n">fit</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="n">mu</span> <span class="o">*</span> <span class="n">cvx</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">cvx</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="n">fit</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="mi">2</span><span class="p">))</span>
+<span class="n">problem</span> <span class="o">=</span> <span class="n">cvx</span><span class="o">.</span><span class="n">Problem</span><span class="p">(</span><span class="n">objective</span><span class="p">)</span>
+<span class="n">problem</span><span class="o">.</span><span class="n">solve</span><span class="p">(</span><span class="n">solver</span><span class="o">=</span><span class="s">'MOSEK'</span><span class="p">)</span>
+<span class="n">fits</span> <span class="o">=</span> <span class="p">[</span><span class="n">fit</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">A1</span><span class="p">]</span>
+<span class="n">mu</span> <span class="o">=</span> <span class="n">cvx</span><span class="o">.</span><span class="n">Parameter</span><span class="p">(</span><span class="n">sign</span><span class="o">=</span><span class="s">'positive'</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="mf">1e2</span><span class="p">)</span>
+<span class="n">objective</span> <span class="o">=</span> <span class="n">cvx</span><span class="o">.</span><span class="n">Minimize</span><span class="p">(</span><span class="n">cvx</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">daily_insol</span> <span class="o">-</span> <span class="n">fit</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span> <span class="o">+</span> <span class="n">mu</span> <span class="o">*</span> <span class="n">cvx</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">cvx</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="n">fit</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="mi">2</span><span class="p">))</span>
+<span class="n">problem</span> <span class="o">=</span> <span class="n">cvx</span><span class="o">.</span><span class="n">Problem</span><span class="p">(</span><span class="n">objective</span><span class="p">)</span>
+<span class="n">problem</span><span class="o">.</span><span class="n">solve</span><span class="p">(</span><span class="n">solver</span><span class="o">=</span><span class="s">'MOSEK'</span><span class="p">)</span>
+<span class="n">fits</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">fit</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">A1</span><span class="p">)</span>
+<span class="n">fit_quadratic</span> <span class="o">=</span> <span class="n">fits</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span></code></pre></figure>
+
+<figure class="highlight"><pre><code class="language-python" data-lang="python"><span class="n">colors</span> <span class="o">=</span> <span class="n">sns</span><span class="o">.</span><span class="n">dark_palette</span><span class="p">(</span><span class="s">'green'</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">fits</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">color</span><span class="o">=</span><span class="n">colors</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">label</span><span class="o">=</span><span class="s">'$</span><span class="se">\\</span><span class="s">ell_1$-loss'</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">fits</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">color</span><span class="o">=</span><span class="n">colors</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">label</span><span class="o">=</span><span class="s">'$</span><span class="err">\</span><span class="s">ell_2$-loss'</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">daily_insol</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">ls</span><span class="o">=</span><span class="s">':'</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s">'measured data'</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">loc</span><span class="o">=</span><span class="p">[</span><span class="mf">1.01</span><span class="p">,</span> <span class="mf">0.4</span><span class="p">])</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s">'Quadradic smoothing, comparing $</span><span class="se">\\</span><span class="s">ell_1$ and $</span><span class="err">\</span><span class="s">ell_2$ loss functions'</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s">'kWh/m^2'</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s">'Day'</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlim</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">365</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span></code></pre></figure>
+
+<p><img src="http://localhost:4000/assets/QuantileRegression_28_0.png" alt="png" /></p>
+
+<p>That’s an improvement! At least in the winter, we’re now much closer to estimating that top envelope of the signal. But we can do better still, with…</p>
+
+<h2 id="quantile-regression">Quantile regression</h2>
+
+<p>Now we get to the heart of the matter. We introduce a new penalty function, which is a tilted version of the $\ell_1$ loss function. What does that mean? Well, for a given residual $r=y-\hat{y}$, we can write the familiar $\ell_2$-loss as</p>
+
+<script type="math/tex; mode=display">\phi_{\ell_2}(r) = r^2</script>
+
+<p>and the $\ell_1$-loss as</p>
+
+<script type="math/tex; mode=display">\phi_{\ell_1}(r) = \left\lvert r \right\rvert</script>
+
+<p>The <em>quantile regression loss function</em> or <em>tilted $\ell_1$ penalty</em> is defined as</p>
+
+<script type="math/tex; mode=display">\phi_{\tau}(r) = \tau (x)_+ + (1-\tau)(x)_- = \frac{1}{2}\left\lvert x \right\rvert + \left(\tau -\frac{1}{2}\right)x</script>
+
+<p>where $\tau\in(0,1)$ and</p>
+
+<script type="math/tex; mode=display">(x)_+ = \max\left\{0, x\right\},\quad\quad (x)_- = \max\left\{0, -x\right\}</script>
+
+<p>This is still a convex function, so we can happily use it in place of our standard square error loss. Note that when $\tau=\frac{1}{2}$, this loss is the same as the $\ell_1$-penalty (with a scale factor). Below are plots of these three functions, using $\tau=0.9$ for the tilted $\ell_1$-loss.</p>
+
+<figure class="highlight"><pre><code class="language-python" data-lang="python"><span class="n">tau</span> <span class="o">=</span> <span class="mf">0.9</span>
+<span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="o">-</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">100</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">x</span><span class="o">**</span><span class="mi">2</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s">'$</span><span class="se">\\</span><span class="s">ell_2$'</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="nb">abs</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="n">label</span><span class="o">=</span><span class="s">'$</span><span class="se">\\</span><span class="s">ell_1$'</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="nb">abs</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="o">+</span> <span class="p">(</span><span class="n">tau</span> <span class="o">-</span> <span class="mf">0.5</span><span class="p">)</span> <span class="o">*</span> <span class="n">x</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s">'tilted $</span><span class="se">\\</span><span class="s">ell_1$, $</span><span class="se">\\</span><span class="s">tau=0.9$'</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s">'$x$'</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s">'$</span><span class="se">\\</span><span class="s">phi(x)$'</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">loc</span><span class="o">=</span><span class="mi">9</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s">'Loss Function Comparison'</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span></code></pre></figure>
+
+<p><img src="http://localhost:4000/assets/QuantileRegression_30_0.png" alt="png" /></p>
+
+<p>Why use this loss function? Intuitively, the fact that the loss is not symmetric means that we allow larger residuals one side of this fit. When $\tau &gt; \frac{1}{2}$, we allow larger negative residuals, and when $\tau &lt; \frac{1}{2}$, we allow larger positive residuals. In fact, if there are $n$ data points, this method gives you approximately $n\tau$ residuals below the fit, and $(1-n)\tau$ residuals above the fit, which is why this approach is called <em>quantile regression</em>.</p>
+
+<p>Alright, let’s see it in action. Below, we perform non-parametric quantile regression with quadradic smoothing on the second-order difference (phew, that’s a mouthful). In mathematical terms, we’re solving the following problem:</p>
+
+<script type="math/tex; mode=display">% <![CDATA[
+\begin{alignat*}{2}
+& \underset{\hat{y}\in\mathbf{R}^n}{\text{minimize}}
+& & \quad \sum_{i=1}^n \phi_{\tau}(y_i-\hat{y}_i) + \mu \left\lVert \mathcal{D}_2 \hat{y} \right\rVert_2
+\end{alignat*} %]]></script>
+
+<p>We’ll iterate over values of $\tau$ and compare the results to the more common $\ell_2$ and $\ell_1$ losses.</p>
+
+<figure class="highlight"><pre><code class="language-python" data-lang="python"><span class="n">fit</span> <span class="o">=</span> <span class="n">cvx</span><span class="o">.</span><span class="n">Variable</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">daily_insol</span><span class="p">))</span>
+<span class="n">tau</span> <span class="o">=</span> <span class="n">cvx</span><span class="o">.</span><span class="n">Parameter</span><span class="p">(</span><span class="n">sign</span><span class="o">=</span><span class="s">'positive'</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="mf">0.5</span><span class="p">)</span>
+<span class="n">mu</span> <span class="o">=</span> <span class="n">cvx</span><span class="o">.</span><span class="n">Parameter</span><span class="p">(</span><span class="n">sign</span><span class="o">=</span><span class="s">'positive'</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="mf">1e3</span><span class="p">)</span>
+<span class="n">f1</span> <span class="o">=</span> <span class="n">cvx</span><span class="o">.</span><span class="n">sum_entries</span><span class="p">(</span><span class="mf">0.5</span> <span class="o">*</span> <span class="n">cvx</span><span class="o">.</span><span class="nb">abs</span><span class="p">(</span><span class="n">daily_insol</span> <span class="o">-</span> <span class="n">fit</span><span class="p">)</span> <span class="o">+</span> <span class="p">(</span><span class="n">tau</span> <span class="o">-</span> <span class="mf">0.5</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">daily_insol</span> <span class="o">-</span> <span class="n">fit</span><span class="p">))</span>
+<span class="n">f2</span> <span class="o">=</span> <span class="n">mu</span> <span class="o">*</span> <span class="n">cvx</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">cvx</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="n">fit</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="mi">2</span><span class="p">)</span>
+<span class="n">objective</span> <span class="o">=</span> <span class="n">cvx</span><span class="o">.</span><span class="n">Minimize</span><span class="p">(</span><span class="n">f1</span> <span class="o">+</span> <span class="n">f2</span><span class="p">)</span>
+<span class="n">problem</span> <span class="o">=</span> <span class="n">cvx</span><span class="o">.</span><span class="n">Problem</span><span class="p">(</span><span class="n">objective</span><span class="p">)</span></code></pre></figure>
+
+<figure class="highlight"><pre><code class="language-python" data-lang="python"><span class="n">fits</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="n">taus</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">11</span><span class="p">)</span>
+<span class="n">taus</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">r_</span><span class="p">[</span><span class="mf">0.01</span><span class="p">,</span> <span class="n">taus</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="mf">0.99</span><span class="p">]</span>
+<span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">taus</span><span class="p">:</span>
+    <span class="n">tau</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="n">t</span>
+    <span class="n">mu</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="mf">1e4</span> <span class="o">*</span> <span class="nb">min</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="mi">1</span><span class="o">-</span><span class="n">t</span><span class="p">)</span>
+    <span class="n">problem</span><span class="o">.</span><span class="n">solve</span><span class="p">(</span><span class="n">solver</span><span class="o">=</span><span class="s">'MOSEK'</span><span class="p">)</span>
+    <span class="n">fits</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">fit</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">A1</span><span class="p">)</span></code></pre></figure>
+
+<figure class="highlight"><pre><code class="language-python" data-lang="python"><span class="n">colors</span> <span class="o">=</span> <span class="n">sns</span><span class="o">.</span><span class="n">cubehelix_palette</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">taus</span><span class="p">))</span>
+<span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">xrange</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">taus</span><span class="p">)):</span>
+    <span class="k">if</span> <span class="n">taus</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">!=</span> <span class="mf">0.5</span><span class="p">:</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">fits</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">color</span><span class="o">=</span><span class="n">colors</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">label</span><span class="o">=</span><span class="s">'$</span><span class="se">\\</span><span class="s">tau={}$'</span><span class="o">.</span><span class="nb">format</span><span class="p">(</span><span class="n">taus</span><span class="p">[</span><span class="n">i</span><span class="p">]))</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">fits</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">color</span><span class="o">=</span><span class="s">'red'</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s">'$</span><span class="se">\\</span><span class="s">ell_1-$norm $(</span><span class="se">\\</span><span class="s">tau={})$'</span><span class="o">.</span><span class="nb">format</span><span class="p">(</span><span class="n">taus</span><span class="p">[</span><span class="n">i</span><span class="p">]))</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">fit_quadratic</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s">'green'</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s">'$</span><span class="se">\\</span><span class="s">ell_2-$norm (RMSE)'</span><span class="p">,</span> <span class="n">ls</span><span class="o">=</span><span class="s">'--'</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">daily_insol</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">ls</span><span class="o">=</span><span class="s">':'</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s">'measured data'</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">loc</span><span class="o">=</span><span class="p">[</span><span class="mf">1.01</span><span class="p">,</span> <span class="mf">0.4</span><span class="p">])</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s">'kWh/m^2'</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s">'Day'</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlim</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">365</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s">'Quantile regression at various levels, compared to $</span><span class="se">\\</span><span class="s">ell_2$-loss'</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span></code></pre></figure>
+
+<p><img src="http://localhost:4000/assets/QuantileRegression_34_0.png" alt="png" /></p>
+
+<p>Alright! We are now fitting localized quantiles of the data. As $\tau$ gets larger, our fit shifts towards the top of the data. With this method in our toolkit, we’re ready to get that clear sky signal. We’ll fit the quantile regression model with $\tau=0.95$ and $\mu=200$, which were picked manually to give the best fit.</p>
+
+<figure class="highlight"><pre><code class="language-python" data-lang="python"><span class="n">fit</span> <span class="o">=</span> <span class="n">cvx</span><span class="o">.</span><span class="n">Variable</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">daily_insol</span><span class="p">))</span>
+<span class="n">tau</span> <span class="o">=</span> <span class="n">cvx</span><span class="o">.</span><span class="n">Parameter</span><span class="p">(</span><span class="n">sign</span><span class="o">=</span><span class="s">'positive'</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="mf">0.95</span><span class="p">)</span>
+<span class="n">mu</span> <span class="o">=</span> <span class="n">cvx</span><span class="o">.</span><span class="n">Parameter</span><span class="p">(</span><span class="n">sign</span><span class="o">=</span><span class="s">'positive'</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="mf">2e2</span><span class="p">)</span>
+<span class="n">objective</span> <span class="o">=</span> <span class="n">cvx</span><span class="o">.</span><span class="n">Minimize</span><span class="p">(</span><span class="n">cvx</span><span class="o">.</span><span class="n">sum_entries</span><span class="p">(</span><span class="mf">0.5</span> <span class="o">*</span> <span class="n">cvx</span><span class="o">.</span><span class="nb">abs</span><span class="p">(</span><span class="n">daily_insol</span> <span class="o">-</span> <span class="n">fit</span><span class="p">)</span> <span class="o">+</span>
+                                         <span class="p">(</span><span class="n">tau</span> <span class="o">-</span> <span class="mf">0.5</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">daily_insol</span> <span class="o">-</span> <span class="n">fit</span><span class="p">))</span> <span class="o">+</span>
+                         <span class="n">mu</span> <span class="o">*</span> <span class="n">cvx</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">cvx</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="n">fit</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="mi">2</span><span class="p">))</span>
+<span class="n">problem</span> <span class="o">=</span> <span class="n">cvx</span><span class="o">.</span><span class="n">Problem</span><span class="p">(</span><span class="n">objective</span><span class="p">)</span>
+<span class="n">problem</span><span class="o">.</span><span class="n">solve</span><span class="p">(</span><span class="n">solver</span><span class="o">=</span><span class="s">'MOSEK'</span><span class="p">)</span></code></pre></figure>
+
+<p>And, plot the results.</p>
+
+<figure class="highlight"><pre><code class="language-python" data-lang="python"><span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">daily_insol</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s">'measured data'</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">fit</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">A1</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s">'clear sky limit'</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s">'kWh'</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s">'kWh/m^2'</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s">'Day'</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlim</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">365</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s">'Fitting the clear sky signal in daily insolation data'</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">loc</span><span class="o">=</span><span class="mi">8</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span></code></pre></figure>
+
+<p><img src="http://localhost:4000/assets/QuantileRegression_37_0.png" alt="png" /></p>
+
+<h2 id="conclusion--what-next">Conclusion / what next?</h2>
+
+<p>We’ve seen that statistical smoothing can be easily put in a convex optimization framework and that quantile regression allows us to work with statistical models that do not assume normally distributed residuals. There are two tuning parameters to consider, $\mu$ and $\tau$, which control the smoothness and quantile of the fit.</p>
+
+<p>That’s great that we were able to fit a line to the data in a particular way, but so what? Well, the ratio of the measured data to the estimate, $\kappa = \frac{y}{\hat{y}}$, represents how close a day is the clear sky maximum. So, we can now do things like isolate sunny days and cloudy days. Below, we select days with $\kappa \geq 0.97$.</p>
+
+<figure class="highlight"><pre><code class="language-python" data-lang="python"><span class="n">clear_days</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">divide</span><span class="p">(</span><span class="n">daily_insol</span><span class="p">,</span> <span class="n">fit</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">A1</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="mf">0.97</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">daily_insol</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s">'measured data'</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">fit</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">A1</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s">'clear sky limit'</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">daily_insol</span><span class="p">))[</span><span class="n">clear_days</span><span class="p">],</span> <span class="n">daily_insol</span><span class="p">[</span><span class="n">clear_days</span><span class="p">],</span> <span class="n">color</span><span class="o">=</span><span class="s">'red'</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s">'kWh'</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s">'kWh/m^2'</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s">'Day'</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlim</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">365</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s">'Fitting the clear sky signal in daily insolation data'</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">loc</span><span class="o">=</span><span class="mi">8</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span></code></pre></figure>
+
+<p><img src="http://localhost:4000/assets/QuantileRegression_39_0.png" alt="png" /></p>
+
+<p>This procedure has selected days that are at the “top” of the seasonal cutoff. As we can see below, these days are, in fact, quite clear.</p>
+
+<figure class="highlight"><pre><code class="language-python" data-lang="python"><span class="n">D</span> <span class="o">=</span> <span class="n">ghi</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">24</span><span class="p">)</span></code></pre></figure>
+
+<figure class="highlight"><pre><code class="language-python" data-lang="python"><span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">D</span><span class="p">[</span><span class="n">clear_days</span><span class="p">]</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span></code></pre></figure>
+
+<p><img src="http://localhost:4000/assets/QuantileRegression_42_0.png" alt="png" /></p>
+
+<p>Alternatively, we can select for the “least clear” days. Below we find the 50 least clear days</p>
+
+<figure class="highlight"><pre><code class="language-python" data-lang="python"><span class="n">energy_rank</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argsort</span><span class="p">(</span><span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">divide</span><span class="p">(</span><span class="n">daily_insol</span><span class="p">,</span> <span class="n">fit</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">A1</span><span class="p">))</span>
+<span class="n">cloudy_days</span> <span class="o">=</span> <span class="n">energy_rank</span><span class="p">[</span><span class="o">-</span><span class="mi">50</span><span class="p">:]</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">daily_insol</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s">'measured data'</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">fit</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">A1</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s">'clear sky limit'</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">daily_insol</span><span class="p">))[</span><span class="n">cloudy_days</span><span class="p">],</span> <span class="n">daily_insol</span><span class="p">[</span><span class="n">cloudy_days</span><span class="p">],</span> <span class="n">color</span><span class="o">=</span><span class="s">'red'</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s">'kWh'</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s">'kWh/m^2'</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s">'Day'</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlim</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">365</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s">'Fitting the clear sky signal in daily insolation data'</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">loc</span><span class="o">=</span><span class="mi">8</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span></code></pre></figure>
+
+<p><img src="http://localhost:4000/assets/QuantileRegression_44_0.png" alt="png" /></p>
+
+<p>Notice that some of the least-clear days in the summer still contain more energy than the most clear days in the winter. This is why total energy, by itself, is not a good proxy for daily clearness. Below, we see that the selected days are, in fact, quite cloudy.</p>
+
+<figure class="highlight"><pre><code class="language-python" data-lang="python"><span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">D</span><span class="p">[</span><span class="n">cloudy_days</span><span class="p">]</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span></code></pre></figure>
+
+<p><img src="http://localhost:4000/assets/QuantileRegression_46_0.png" alt="png" /></p>
+
+<p>The clear sky signal we found separates clear days from cloudy days in the data set. In other words, we can interpret the ratio $\kappa$ as a <em>daily clearness index</em>, which is roughly the amount of solar energy in one day divided by the maximum amount possible under full sun conditions.</p>
+:ET

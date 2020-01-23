@@ -1,0 +1,194 @@
+I"Z<p><em>How can we use machine learning techniques to solve a classic statistics problem?</em></p>
+
+<style>
+.tablelines table, .tablelines td, .tablelines th {
+        border: 1px solid black;
+        padding: 10px;
+        }
+</style>
+
+<p><a href="https://en.wikipedia.org/wiki/Anscombe%27s_quartet">Anscombe’s Quartet</a> is a collection of four data sets with nearly exactly the same summary statistics. It was developed by statistician Francis Anscombe in 1973 to illustrate the importance of plotting data and the impact of outliers on statistical analysis.</p>
+
+<p>We can “solve” Anscombe’s Quartet with <a href="https://en.wikipedia.org/wiki/Cross-validation_(statistics)">cross-validation</a> in the sense that we can use statistics to determine which of the four data sets are <em>actualy</em> well represented by a linear model. Before we dive in, let’s take a look at the data sets. <a href="https://seaborn.pydata.org/">Seaborn</a> provides an easy way to load Anscombe’s Quartet, as shown below.</p>
+
+<figure class="highlight"><pre><code class="language-python" data-lang="python"><span class="c1"># Standard Imports
+</span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="n">np</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="n">pd</span>
+<span class="kn">import</span> <span class="nn">seaborn</span> <span class="k">as</span> <span class="n">sns</span>
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="n">plt</span>
+<span class="kn">from</span> <span class="nn">sklearn.linear_model</span> <span class="kn">import</span> <span class="n">LinearRegression</span>
+<span class="kn">from</span> <span class="nn">sklearn.model_selection</span> <span class="kn">import</span> <span class="n">KFold</span></code></pre></figure>
+
+<p>Load the data:</p>
+
+<figure class="highlight"><pre><code class="language-python" data-lang="python"><span class="n">df</span> <span class="o">=</span> <span class="n">sns</span><span class="o">.</span><span class="n">load_dataset</span><span class="p">(</span><span class="s">"anscombe"</span><span class="p">)</span></code></pre></figure>
+
+<p>Plot the Quartet:</p>
+
+<figure class="highlight"><pre><code class="language-python" data-lang="python"><span class="n">sns</span><span class="o">.</span><span class="n">lmplot</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="s">"x"</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="s">"y"</span><span class="p">,</span> <span class="n">col</span><span class="o">=</span><span class="s">"dataset"</span><span class="p">,</span> <span class="n">hue</span><span class="o">=</span><span class="s">"dataset"</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">df</span><span class="p">,</span>
+           <span class="n">col_wrap</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">ci</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">palette</span><span class="o">=</span><span class="s">"muted"</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span>
+           <span class="n">scatter_kws</span><span class="o">=</span><span class="p">{</span><span class="s">"s"</span><span class="p">:</span> <span class="mi">50</span><span class="p">,</span> <span class="s">"alpha"</span><span class="p">:</span> <span class="mi">1</span><span class="p">})</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">gcf</span><span class="p">()</span><span class="o">.</span><span class="n">suptitle</span><span class="p">(</span><span class="s">"Anscombe's Quartet"</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="mf">1.02</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span></code></pre></figure>
+
+<p><img src="http://localhost:4000/assets/AQ_3_0.png" alt="png" /></p>
+
+<p>Visually, the four data sets look quite different. Group <code class="highlighter-rouge">I</code> is the only group that actually seems to be observations of a linear relationship with random noise. However, they all appear to have the same linear regression line.</p>
+
+<p>Next, let’s calculate all the summary statistics, to show that they are identical.</p>
+
+<figure class="highlight"><pre><code class="language-python" data-lang="python"><span class="n">grouped</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s">'dataset'</span><span class="p">)</span>
+<span class="n">summary_results</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="s">'mean_x'</span><span class="p">,</span> <span class="s">'mean_y'</span><span class="p">,</span> <span class="s">'std_x'</span><span class="p">,</span> <span class="s">'std_y'</span><span class="p">,</span> <span class="s">'correlation'</span><span class="p">,</span> <span class="s">'slope'</span><span class="p">,</span> <span class="s">'offset'</span><span class="p">,</span> <span class="s">'R2'</span><span class="p">])</span>
+<span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">grouped</span><span class="o">.</span><span class="n">groups</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="n">grouped</span><span class="o">.</span><span class="n">get_group</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+    <span class="n">fit</span> <span class="o">=</span> <span class="n">LinearRegression</span><span class="p">()</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="s">'x'</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">data</span><span class="p">[</span><span class="s">'y'</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">)</span>
+    <span class="n">slope</span> <span class="o">=</span> <span class="n">fit</span><span class="o">.</span><span class="n">coef_</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">offset</span> <span class="o">=</span> <span class="n">fit</span><span class="o">.</span><span class="n">intercept_</span>
+    <span class="n">r2</span> <span class="o">=</span> <span class="n">fit</span><span class="o">.</span><span class="n">score</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="s">'x'</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">data</span><span class="p">[</span><span class="s">'y'</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">)</span>
+    <span class="n">summary_results</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">grouped</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">key</span><span class="p">][</span><span class="s">'x'</span><span class="p">],</span>
+        <span class="n">np</span><span class="o">.</span><span class="nb">round</span><span class="p">(</span><span class="n">grouped</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">key</span><span class="p">][</span><span class="s">'y'</span><span class="p">],</span> <span class="mi">2</span><span class="p">),</span>
+        <span class="n">np</span><span class="o">.</span><span class="nb">round</span><span class="p">(</span><span class="n">grouped</span><span class="o">.</span><span class="n">std</span><span class="p">()</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">key</span><span class="p">][</span><span class="s">'x'</span><span class="p">],</span> <span class="mi">5</span><span class="p">),</span>
+        <span class="n">np</span><span class="o">.</span><span class="nb">round</span><span class="p">(</span><span class="n">grouped</span><span class="o">.</span><span class="n">std</span><span class="p">()</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">key</span><span class="p">][</span><span class="s">'y'</span><span class="p">],</span> <span class="mi">2</span><span class="p">),</span>
+        <span class="n">np</span><span class="o">.</span><span class="nb">round</span><span class="p">(</span><span class="n">grouped</span><span class="o">.</span><span class="n">corr</span><span class="p">()</span><span class="o">.</span><span class="n">loc</span><span class="p">[(</span><span class="n">key</span><span class="p">,</span> <span class="s">'x'</span><span class="p">)][</span><span class="s">'y'</span><span class="p">],</span> <span class="mi">3</span><span class="p">),</span>
+        <span class="n">np</span><span class="o">.</span><span class="nb">round</span><span class="p">(</span><span class="n">slope</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span>
+        <span class="n">np</span><span class="o">.</span><span class="nb">round</span><span class="p">(</span><span class="n">offset</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span>
+        <span class="n">np</span><span class="o">.</span><span class="nb">round</span><span class="p">(</span><span class="n">r2</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+    <span class="p">)</span>
+<span class="n">summary_results</span></code></pre></figure>
+
+<table class="tablelines">
+  <thead>
+    <tr>
+      <th style="text-align: center"> </th>
+      <th style="text-align: center">mean_x</th>
+      <th style="text-align: center">mean_y</th>
+      <th style="text-align: center">std_x</th>
+      <th style="text-align: center">std_y</th>
+      <th style="text-align: center">correlation</th>
+      <th style="text-align: center">slope</th>
+      <th style="text-align: center">offset</th>
+      <th style="text-align: center">R2</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td style="text-align: center">I</td>
+      <td style="text-align: center">9.0</td>
+      <td style="text-align: center">7.5</td>
+      <td style="text-align: center">3.31662</td>
+      <td style="text-align: center">2.03</td>
+      <td style="text-align: center">0.816</td>
+      <td style="text-align: center">0.5</td>
+      <td style="text-align: center">3.0</td>
+      <td style="text-align: center">0.67</td>
+    </tr>
+    <tr>
+      <td style="text-align: center">II</td>
+      <td style="text-align: center">9.0</td>
+      <td style="text-align: center">7.5</td>
+      <td style="text-align: center">3.31662</td>
+      <td style="text-align: center">2.03</td>
+      <td style="text-align: center">0.816</td>
+      <td style="text-align: center">0.5</td>
+      <td style="text-align: center">3.0</td>
+      <td style="text-align: center">0.67</td>
+    </tr>
+    <tr>
+      <td style="text-align: center">III</td>
+      <td style="text-align: center">9.0</td>
+      <td style="text-align: center">7.5</td>
+      <td style="text-align: center">3.31662</td>
+      <td style="text-align: center">2.03</td>
+      <td style="text-align: center">0.816</td>
+      <td style="text-align: center">0.5</td>
+      <td style="text-align: center">3.0</td>
+      <td style="text-align: center">0.67</td>
+    </tr>
+    <tr>
+      <td style="text-align: center">IV</td>
+      <td style="text-align: center">9.0</td>
+      <td style="text-align: center">7.5</td>
+      <td style="text-align: center">3.31662</td>
+      <td style="text-align: center">2.03</td>
+      <td style="text-align: center">0.817</td>
+      <td style="text-align: center">0.5</td>
+      <td style="text-align: center">3.0</td>
+      <td style="text-align: center">0.67</td>
+    </tr>
+  </tbody>
+</table>
+
+<p>As expected, all summary statistics are (nearly) identical. But what if we wanted to actually figure out which data set is best described by the linear model? We can do that with cross-validation.</p>
+
+<p>The idea of cross-validation is simple, you randomly hold out some amount of your data, and fit the model with the reduced set. Then, you predict on the hold out set and look at the residuals. This process is repeated <em>k</em> times (“<em>k</em>-fold cross-validation”), so that every piece of data is in the test set exactly once. Finally, you calculate the standard deviation (<a href="https://en.wikipedia.org/wiki/Root-mean-square_deviation">RMSE</a>) and mean (<a href="https://en.wikipedia.org/wiki/Bias_of_an_estimator">MBE</a>) of all the residuals. A “good” model will have low RMSE and nearly zero MBE.</p>
+
+<p>We can repeat this process for each of the four groups in Anscombe’s Quartet. Typically, we use cross-validation to pick the best model for a data set. In this case, we are finding which data set best fits a simple linear regresssion model.</p>
+
+<figure class="highlight"><pre><code class="language-python" data-lang="python"><span class="n">hold_out_validation</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="s">'rmse'</span><span class="p">,</span> <span class="s">'mbe'</span><span class="p">])</span>
+<span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">grouped</span><span class="o">.</span><span class="n">groups</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="n">grouped</span><span class="o">.</span><span class="n">get_group</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+    <span class="n">X</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s">'x'</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="n">y</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s">'y'</span><span class="p">]</span><span class="o">.</span><span class="n">values</span>
+    <span class="n">splits</span> <span class="o">=</span> <span class="n">KFold</span><span class="p">(</span><span class="n">n_splits</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">shuffle</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="mi">42</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">X</span><span class="p">)</span>
+    <span class="n">residuals</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">train_ix</span><span class="p">,</span> <span class="n">test_ix</span> <span class="ow">in</span> <span class="n">splits</span><span class="p">:</span>
+        <span class="n">fit</span> <span class="o">=</span> <span class="n">LinearRegression</span><span class="p">()</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">X</span><span class="p">[</span><span class="n">train_ix</span><span class="p">],</span> <span class="n">y</span><span class="p">[</span><span class="n">train_ix</span><span class="p">])</span>
+        <span class="n">y_pred</span> <span class="o">=</span> <span class="n">fit</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">X</span><span class="p">[</span><span class="n">test_ix</span><span class="p">])</span>
+        <span class="n">residuals</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">y</span><span class="p">[</span><span class="n">test_ix</span><span class="p">]</span> <span class="o">-</span> <span class="n">y_pred</span><span class="p">)</span>
+    <span class="n">residuals</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span><span class="n">residuals</span><span class="p">)</span>
+    <span class="n">hold_out_validation</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="n">residuals</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">residuals</span><span class="p">))</span>
+<span class="n">hold_out_validation</span></code></pre></figure>
+
+<table class="tablelines">
+  <thead>
+    <tr>
+      <th style="text-align: center"> </th>
+      <th style="text-align: center">rmse</th>
+      <th style="text-align: center">mbe</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td style="text-align: center">I</td>
+      <td style="text-align: center">1.222849</td>
+      <td style="text-align: center">-0.050753</td>
+    </tr>
+    <tr>
+      <td style="text-align: center">II</td>
+      <td style="text-align: center">1.360473</td>
+      <td style="text-align: center">-0.145880</td>
+    </tr>
+    <tr>
+      <td style="text-align: center">III</td>
+      <td style="text-align: center">1.439326</td>
+      <td style="text-align: center">0.208448</td>
+    </tr>
+    <tr>
+      <td style="text-align: center">IV</td>
+      <td style="text-align: center">1.944016</td>
+      <td style="text-align: center">0.497576</td>
+    </tr>
+  </tbody>
+</table>
+
+<figure class="highlight"><pre><code class="language-python" data-lang="python"><span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">8</span><span class="p">,</span> <span class="mi">5</span><span class="p">))</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">stem</span><span class="p">(</span><span class="n">hold_out_validation</span><span class="p">[</span><span class="s">'rmse'</span><span class="p">],</span> <span class="n">label</span><span class="o">=</span><span class="s">'RMSE'</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">stem</span><span class="p">(</span><span class="n">hold_out_validation</span><span class="p">[</span><span class="s">'mbe'</span><span class="p">],</span> <span class="n">markerfmt</span><span class="o">=</span><span class="s">'C1o'</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s">'MBE'</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xticks</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">],</span> <span class="nb">list</span><span class="p">(</span><span class="n">hold_out_validation</span><span class="o">.</span><span class="n">index</span><span class="p">))</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s">"Cross-Validation Error Metrics on Anscombe's Quartet"</span><span class="p">);</span></code></pre></figure>
+
+<p><img src="http://localhost:4000/assets/AQ_8_0.png" alt="png" /></p>
+
+<p>Perfect! Group <code class="highlighter-rouge">I</code> has the lowest RMSE and MBE in the Quartet.</p>
+
+<h3 id="conclusions">Conclusions</h3>
+
+<p>Traditional measures such as <a href="https://en.wikipedia.org/wiki/Correlation_and_dependence">correlation</a> and <a href="https://en.wikipedia.org/wiki/Coefficient_of_determination">coefficient of determination</a> do not provide useful insight into which of the four groups is well characterized by a linear model. More generally, these measures are not appropriate for the task of <em>model selection</em>.</p>
+
+<p><a href="https://scikit-learn.org/stable/model_selection.html">Model selection and validation procedures</a> have been developed by the machine learning community as an alternative to these traditional measures. These newer procedures focus on the “predictive power” of a model. Typically these methods are deployed when trying to select between various fancy, non-linear ML models (say, different forms of a <a href="https://scikit-learn.org/stable/modules/neural_networks_supervised.html">deep neural network</a>).</p>
+
+<p>However, the Anscombe’s Quartet example shows that these procedures are also quite useful when evaluating linear models. Cross-validation allows us to systematically determine that group <code class="highlighter-rouge">I</code> is best represented by a linear model with slope <script type="math/tex">0.5</script> and offset <script type="math/tex">3.0</script>.</p>
+:ET

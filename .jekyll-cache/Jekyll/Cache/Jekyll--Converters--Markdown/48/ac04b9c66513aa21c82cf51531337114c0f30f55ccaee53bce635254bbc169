@@ -1,0 +1,350 @@
+I"r�<p><em>This is based on a problem presented in EE 263 Linear Dynamical Systems at Stanford University</em></p>
+
+<h3 id="background-least-squares">Background: Least Squares</h3>
+
+<p>Suppose that we are trying to estimate a vector $p\in\mathbf{R}^{n}$. We take $m$ scalar measurements, each a linear combination of the elements of $p$. Each measurement, $y_i$, is modeled as</p>
+
+<script type="math/tex; mode=display">y_i = a_i^T p + v_i,\quad\quad i=1,\ldots,m,</script>
+
+<p>where</p>
+
+<ul>
+  <li>$y_i\in\mathbf{R}$ is the $i^{\text{th}}$ measurement</li>
+  <li>$p\in\mathbf{R}^n$ is the vector we wish to measure</li>
+  <li>$v_i$ is the sensor or measurement error of the ith measurement.</li>
+</ul>
+
+<p>We assume that the $a_i$’s are given, i.e. we know the calibration values of the sensor for each measurement. Additionally, we assume that we have at least as many measurements as values we need to estimate $\left(m\geq n\right)$ and that the matrix A given by</p>
+
+<script type="math/tex; mode=display">A = \left[\begin{matrix}
+a_1^T \\ a_2^T \\ \vdots \\ a_m^T
+\end{matrix}\right]</script>
+
+<p>is full rank. For standard linear regression, the vector $x$ would be in $\mathbf{R}^2$ and would represent the slope and intercept parameters. In this context, the matrix $A$ would have the given values for the independent variable in the first column and all ones in the second column, and the vector $y\in\mathbf{R}^m$ would contain the values for the dependent variable. If the error terms, $v_i$, were small, random, and centered around zero (Gaussian white noise), then least squares gives the optimal estimation of x (i.e., minimizes the RMSE):</p>
+
+<script type="math/tex; mode=display">\begin{align}
+\hat{p} = \left(A^TA\right)^{-1}A^T y = \underset{p}{\text{argmin}}\left\lVert y - Ap \right\rVert_2^2
+\end{align}</script>
+
+<p>Let’s illustrate this with a quick example.</p>
+
+<figure class="highlight"><pre><code class="language-python" data-lang="python"><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="n">np</span>
+<span class="kn">from</span> <span class="nn">scipy.linalg</span> <span class="kn">import</span> <span class="n">inv</span>
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="n">plt</span>
+<span class="o">%</span><span class="n">matplotlib</span> <span class="n">inline</span>
+<span class="kn">import</span> <span class="nn">seaborn</span> <span class="k">as</span> <span class="n">sns</span>
+<span class="n">sns</span><span class="o">.</span><span class="nb">set</span><span class="p">(</span><span class="n">context</span><span class="o">=</span><span class="s">'talk'</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="s">'darkgrid'</span><span class="p">,</span> <span class="n">palette</span><span class="o">=</span><span class="s">'colorblind'</span><span class="p">)</span></code></pre></figure>
+
+<figure class="highlight"><pre><code class="language-python" data-lang="python"><span class="n">m</span> <span class="o">=</span> <span class="mi">2</span>
+<span class="n">b</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+<span class="n">xs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">10</span><span class="p">)</span>
+<span class="n">ys</span> <span class="o">=</span> <span class="n">m</span> <span class="o">*</span> <span class="n">xs</span> <span class="o">+</span> <span class="n">b</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mf">.2</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">xs</span><span class="p">))</span>
+<span class="n">fig</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">8</span><span class="p">,</span><span class="mi">6</span><span class="p">))</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">xs</span><span class="p">,</span> <span class="n">ys</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s">'x'</span><span class="p">);</span> <span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s">'y'</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span></code></pre></figure>
+
+<p><img src="http://localhost:4000/assets/LS_offet_and_drift_2_0.png" alt="png" /></p>
+
+<p>Construct the matrix $A$.</p>
+
+<figure class="highlight"><pre><code class="language-python" data-lang="python"><span class="n">A</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">c_</span><span class="p">[</span><span class="n">xs</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">xs</span><span class="p">)]</span>
+<span class="k">print</span> <span class="n">A</span></code></pre></figure>
+
+<figure class="highlight"><pre><code class="language-python" data-lang="python">    <span class="p">[[</span> <span class="mf">0.75797312</span>  <span class="mf">1.</span>        <span class="p">]</span>
+     <span class="p">[</span> <span class="mf">0.62779477</span>  <span class="mf">1.</span>        <span class="p">]</span>
+     <span class="p">[</span> <span class="mf">0.46559402</span>  <span class="mf">1.</span>        <span class="p">]</span>
+     <span class="p">[</span> <span class="mf">0.33056264</span>  <span class="mf">1.</span>        <span class="p">]</span>
+     <span class="p">[</span> <span class="mf">0.37852521</span>  <span class="mf">1.</span>        <span class="p">]</span>
+     <span class="p">[</span> <span class="mf">0.2751329</span>   <span class="mf">1.</span>        <span class="p">]</span>
+     <span class="p">[</span> <span class="mf">0.73195098</span>  <span class="mf">1.</span>        <span class="p">]</span>
+     <span class="p">[</span> <span class="mf">0.58865603</span>  <span class="mf">1.</span>        <span class="p">]</span>
+     <span class="p">[</span> <span class="mf">0.52803319</span>  <span class="mf">1.</span>        <span class="p">]</span>
+     <span class="p">[</span> <span class="mf">0.79308442</span>  <span class="mf">1.</span>        <span class="p">]]</span></code></pre></figure>
+
+<p>Solve the least squares problem.</p>
+
+<figure class="highlight"><pre><code class="language-python" data-lang="python"><span class="n">p_hat</span> <span class="o">=</span> <span class="n">inv</span><span class="p">(</span><span class="n">A</span><span class="o">.</span><span class="n">T</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">A</span><span class="p">))</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">A</span><span class="o">.</span><span class="n">T</span><span class="p">)</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">ys</span><span class="p">)</span></code></pre></figure>
+
+<p>Compared the estimated parameters to the real parameters.</p>
+
+<figure class="highlight"><pre><code class="language-python" data-lang="python"><span class="n">fig</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">8</span><span class="p">,</span><span class="mi">6</span><span class="p">))</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">xs</span><span class="p">,</span> <span class="n">ys</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s">'measured'</span><span class="p">)</span>
+<span class="n">x2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">x2</span><span class="p">,</span> <span class="n">m</span><span class="o">*</span><span class="n">x2</span> <span class="o">+</span> <span class="n">b</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">ls</span><span class="o">=</span><span class="s">'--'</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s">'actual'</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">x2</span><span class="p">,</span> <span class="n">p_hat</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">*</span><span class="n">x2</span> <span class="o">+</span> <span class="n">p_hat</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">ls</span><span class="o">=</span><span class="s">'--'</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s">'estimated'</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s">'x'</span><span class="p">);</span> <span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s">'y'</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlim</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">);</span> <span class="n">plt</span><span class="o">.</span><span class="n">ylim</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">loc</span><span class="o">=</span><span class="mi">4</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span></code></pre></figure>
+
+<p><img src="http://localhost:4000/assets/LS_offet_and_drift_8_0.png" alt="png" /></p>
+
+<h3 id="adding-bias-and-drift-to-the-error">Adding bias and drift to the error</h3>
+
+<p>For this problem, let us assume that the error contains some predictable terms in addition to white noise: a common offset term that is the same for all measurements and a drift term that grows linearly with each subsequent measurement. We model this situation as:</p>
+
+<script type="math/tex; mode=display">\begin{align}
+v_i = \alpha + \beta i + w_i
+\end{align}</script>
+
+<p>We will use least squares to simultaneously the desired vector $x\in\mathbf{R}^n$, the bias term $\alpha\in\mathbf{R}$, and the drift term $\beta\in\mathbf{R}$. We begin by substituting our error model into the measurement model:</p>
+
+<script type="math/tex; mode=display">\begin{align}
+y_i = a_i^T p + \alpha + \beta i + w_i,\quad\quad i=1,\ldots,m,
+\end{align}</script>
+
+<p>This induces the matrix equation:</p>
+
+<script type="math/tex; mode=display">% <![CDATA[
+\begin{align}
+\left[\begin{matrix}
+y_1 \\ y_2  \\ \vdots \\ y_m
+\end{matrix}\right] &= 
+\left[\begin{matrix}
+a_1^T & 1 & 1 \\
+a_2^T & 1 & 2 \\
+\vdots & \vdots & \vdots \\
+a_m^T & 1 & m
+\end{matrix}\right]
+\left[\begin{matrix}
+p \\ \alpha \\ \beta
+\end{matrix}\right] + 
+\left[\begin{matrix}
+w_1 \\ w_2 \\ \vdots \\ w_m
+\end{matrix}\right] \\ \\
+y &= \tilde{A}\tilde{p} + w
+\end{align} %]]></script>
+
+<p>We can now use least squares to find all parameters:</p>
+
+<script type="math/tex; mode=display">\begin{align}
+\hat{\tilde{p}} = \left[\begin{matrix}
+\hat{p} \\ \hat{\alpha} \\ \hat{\beta}
+\end{matrix}\right] = \left(\tilde{A}^T\tilde{A}\right)^{-1}\tilde{A}^T y
+\end{align}</script>
+
+<p>Alright! We have a closed-form expression to estimate $p$, $\alpha$, and $\beta$. A couple caveats: for this to work, the following much be true:</p>
+
+<ul>
+  <li>$m\geq n +2$. We must have enough measurement to recover $n+2$ parameters.</li>
+  <li>$\tilde{A}$ must be full rank. Note, even if $A$ is full rank (which is given), $\tilde{A}$ might not be. If some linear combination of the sensor signals looks like some linear combination of the offset and drift, then it is impossible to separate the offset and drift parameters from $x$.</li>
+</ul>
+
+<p>Immediately, we see a potential problem! If we are using this to derive the parameters of a statistical model (as in the previous example), that model can’t contain an offset term! If it does, then the second condition is violated.</p>
+
+<p>Alright, that’s enough theory. Now let’s look at an application of this technique. Again, suppose we have some noisy measurements of a function. This time we’ll make the function a bit more interesting: a cubic function with no offset. We’ll start by again looking at the simpler case where the noise terms are <a href="https://en.wikipedia.org/wiki/Independent_and_identically_distributed_random_variables">i.i.d.</a> Gaussian white noise, and then we’ll add the offset and drift terms.</p>
+
+<figure class="highlight"><pre><code class="language-python" data-lang="python"><span class="k">def</span> <span class="nf">our_func</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">p1</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">p2</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">p3</span><span class="o">=-</span><span class="mf">0.2</span><span class="p">):</span>
+    <span class="n">output</span> <span class="o">=</span> <span class="n">p1</span> <span class="o">*</span> <span class="n">x</span> <span class="o">+</span> <span class="n">p2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">power</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span> <span class="o">+</span> <span class="n">p3</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">power</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">output</span></code></pre></figure>
+
+<figure class="highlight"><pre><code class="language-python" data-lang="python"><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="mi">42</span><span class="p">)</span></code></pre></figure>
+
+<figure class="highlight"><pre><code class="language-python" data-lang="python"><span class="n">fig</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">8</span><span class="p">))</span>
+<span class="n">xs_ideal</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="o">-</span><span class="mi">5</span><span class="p">,</span> <span class="mi">15</span><span class="p">,</span> <span class="mi">30</span><span class="p">)</span>
+<span class="n">xs_samples</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="o">-</span><span class="mi">5</span><span class="p">,</span> <span class="mi">15</span><span class="p">,</span> <span class="mi">15</span><span class="p">)</span>
+<span class="n">ys_samples</span> <span class="o">=</span> <span class="n">our_func</span><span class="p">(</span><span class="n">xs_samples</span><span class="p">)</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">xs_samples</span><span class="p">))</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">xs_ideal</span><span class="p">,</span> <span class="n">our_func</span><span class="p">(</span><span class="n">xs_ideal</span><span class="p">),</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">ls</span><span class="o">=</span><span class="s">'--'</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">xs_samples</span><span class="p">,</span> <span class="n">ys_samples</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">([</span><span class="s">'Actual Function'</span><span class="p">,</span> <span class="s">'Noisy Measurements'</span><span class="p">],</span> <span class="n">loc</span><span class="o">=</span><span class="mi">4</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s">'x'</span><span class="p">);</span> <span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s">'y'</span><span class="p">)</span>
+<span class="n">_</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s">'Noisy Samples of a Cubic Function'</span><span class="p">)</span></code></pre></figure>
+
+<p><img src="http://localhost:4000/assets/LS_offet_and_drift_12_0.png" alt="png" /></p>
+
+<p>A cubic function with no offset is fully defined by three scalar coefficients:</p>
+
+<script type="math/tex; mode=display">% <![CDATA[
+\begin{align}
+y = \mathcal{P}_3(x) &= p_1 x + p_2 x^2 + p_3 x^3 \\
+&= \left[\begin{matrix} x & x^2 & x^3 \end{matrix}\right] \left[\begin{matrix} p_1 \\ p_2 \\ p_3 \end{matrix}\right]
+\end{align} %]]></script>
+
+<p>So, given a set of noisy measurements, <script type="math/tex">\left\{\left(x_1, y_1\right),\left(x_2, y_2\right),\ldots, \left(x_m, y_m\right)\right\}</script>, we find $p=\left[\begin{matrix}p_1 &amp; p_2 &amp; p_3\end{matrix}\right]^T$ as follows. First, construct the following matrix:</p>
+
+<script type="math/tex; mode=display">% <![CDATA[
+\begin{align}
+A &= \left[\begin{matrix}
+x_1 & x_1^2 & x_1^3 \\
+x_2 & x_2^2 & x_2^3 \\
+\vdots & \vdots & \vdots \\
+x_m & x_m^2 & x_m^3 \\
+\end{matrix}\right]
+\end{align} %]]></script>
+
+<p>Then, find $\hat{p}$ as before:</p>
+
+<script type="math/tex; mode=display">\begin{align}
+\hat{p} = \left(A^TA\right)^{-1}A^T y = \underset{p}{\text{argmin}}\left\lVert y - Ap \right\rVert_2^2
+\end{align}</script>
+
+<p>Let’s try it out on this cubic-fitting problem! As before, start by constructing matrix $A$.</p>
+
+<figure class="highlight"><pre><code class="language-python" data-lang="python"><span class="n">A</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">c_</span><span class="p">[</span><span class="n">xs_samples</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">power</span><span class="p">(</span><span class="n">xs_samples</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">power</span><span class="p">(</span><span class="n">xs_samples</span><span class="p">,</span> <span class="mi">3</span><span class="p">)]</span>
+<span class="n">np</span><span class="o">.</span><span class="n">set_printoptions</span><span class="p">(</span><span class="n">precision</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+<span class="k">print</span> <span class="n">A</span></code></pre></figure>
+
+<figure class="highlight"><pre><code class="language-python" data-lang="python">    <span class="p">[[</span>  <span class="mf">2.49e+00</span>   <span class="mf">6.20e+00</span>   <span class="mf">1.55e+01</span><span class="p">]</span>
+     <span class="p">[</span>  <span class="mf">1.40e+01</span>   <span class="mf">1.96e+02</span>   <span class="mf">2.75e+03</span><span class="p">]</span>
+     <span class="p">[</span>  <span class="mf">9.64e+00</span>   <span class="mf">9.29e+01</span>   <span class="mf">8.96e+02</span><span class="p">]</span>
+     <span class="p">[</span>  <span class="mf">6.97e+00</span>   <span class="mf">4.86e+01</span>   <span class="mf">3.39e+02</span><span class="p">]</span>
+     <span class="p">[</span> <span class="o">-</span><span class="mf">1.88e+00</span>   <span class="mf">3.53e+00</span>  <span class="o">-</span><span class="mf">6.64e+00</span><span class="p">]</span>
+     <span class="p">[</span> <span class="o">-</span><span class="mf">1.88e+00</span>   <span class="mf">3.53e+00</span>  <span class="o">-</span><span class="mf">6.65e+00</span><span class="p">]</span>
+     <span class="p">[</span> <span class="o">-</span><span class="mf">3.84e+00</span>   <span class="mf">1.47e+01</span>  <span class="o">-</span><span class="mf">5.65e+01</span><span class="p">]</span>
+     <span class="p">[</span>  <span class="mf">1.23e+01</span>   <span class="mf">1.52e+02</span>   <span class="mf">1.87e+03</span><span class="p">]</span>
+     <span class="p">[</span>  <span class="mf">7.02e+00</span>   <span class="mf">4.93e+01</span>   <span class="mf">3.46e+02</span><span class="p">]</span>
+     <span class="p">[</span>  <span class="mf">9.16e+00</span>   <span class="mf">8.39e+01</span>   <span class="mf">7.69e+02</span><span class="p">]</span>
+     <span class="p">[</span> <span class="o">-</span><span class="mf">4.59e+00</span>   <span class="mf">2.11e+01</span>  <span class="o">-</span><span class="mf">9.66e+01</span><span class="p">]</span>
+     <span class="p">[</span>  <span class="mf">1.44e+01</span>   <span class="mf">2.07e+02</span>   <span class="mf">2.98e+03</span><span class="p">]</span>
+     <span class="p">[</span>  <span class="mf">1.16e+01</span>   <span class="mf">1.36e+02</span>   <span class="mf">1.58e+03</span><span class="p">]</span>
+     <span class="p">[</span> <span class="o">-</span><span class="mf">7.53e-01</span>   <span class="mf">5.67e-01</span>  <span class="o">-</span><span class="mf">4.27e-01</span><span class="p">]</span>
+     <span class="p">[</span> <span class="o">-</span><span class="mf">1.36e+00</span>   <span class="mf">1.86e+00</span>  <span class="o">-</span><span class="mf">2.53e+00</span><span class="p">]]</span></code></pre></figure>
+
+<p>Then, solve the least squares problem.</p>
+
+<figure class="highlight"><pre><code class="language-python" data-lang="python"><span class="n">p_hat</span> <span class="o">=</span> <span class="n">inv</span><span class="p">(</span><span class="n">A</span><span class="o">.</span><span class="n">T</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">A</span><span class="p">))</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">A</span><span class="o">.</span><span class="n">T</span><span class="p">)</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">ys_samples</span><span class="p">)</span>
+<span class="k">print</span> <span class="n">p_hat</span></code></pre></figure>
+
+<figure class="highlight"><pre><code class="language-python" data-lang="python">    <span class="p">[</span> <span class="mf">0.96</span>  <span class="mf">2.88</span> <span class="o">-</span><span class="mf">0.19</span><span class="p">]</span></code></pre></figure>
+
+<p>Recall, that the actual parameters were $\left[1, 3, -0.2\right]$. Let’s compare the results.</p>
+
+<figure class="highlight"><pre><code class="language-python" data-lang="python"><span class="n">fig</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">8</span><span class="p">))</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">xs_ideal</span><span class="p">,</span> <span class="n">our_func</span><span class="p">(</span><span class="n">xs_ideal</span><span class="p">),</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">ls</span><span class="o">=</span><span class="s">'--'</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s">'Actual Function'</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">xs_ideal</span><span class="p">,</span> <span class="n">our_func</span><span class="p">(</span><span class="n">xs_ideal</span><span class="p">,</span> <span class="n">p1</span><span class="o">=</span><span class="n">p_hat</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">p2</span><span class="o">=</span><span class="n">p_hat</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">p3</span><span class="o">=</span><span class="n">p_hat</span><span class="p">[</span><span class="mi">2</span><span class="p">]),</span>
+         <span class="n">linewidth</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">ls</span><span class="o">=</span><span class="s">'--'</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s">'Estimated Function'</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">xs_samples</span><span class="p">,</span> <span class="n">ys_samples</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s">'Noisy Measurements'</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">loc</span><span class="o">=</span><span class="mi">4</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s">'x'</span><span class="p">);</span> <span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s">'y'</span><span class="p">)</span>
+<span class="n">_</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s">'Noisy Samples of a Cubic Function'</span><span class="p">)</span></code></pre></figure>
+
+<p><img src="http://localhost:4000/assets/LS_offet_and_drift_18_0.png" alt="png" /></p>
+
+<p>That’s pretty good! Now let’s make things interesting and include the offset and drift terms. The existing formulation already includes Gaussian white noise, so there’s no need to add that again.</p>
+
+<figure class="highlight"><pre><code class="language-python" data-lang="python"><span class="n">alpha</span> <span class="o">=</span> <span class="o">-</span><span class="mi">3</span>
+<span class="n">beta</span> <span class="o">=</span> <span class="mi">5</span></code></pre></figure>
+
+<figure class="highlight"><pre><code class="language-python" data-lang="python"><span class="n">ys_od</span> <span class="o">=</span> <span class="n">ys_samples</span> <span class="o">+</span> <span class="n">alpha</span> <span class="o">+</span> <span class="n">beta</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span> <span class="o">+</span> <span class="n">A</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span></code></pre></figure>
+
+<p>As a sanity check, here’s what the measurements look like now, as compared to the actual function:</p>
+
+<figure class="highlight"><pre><code class="language-python" data-lang="python"><span class="n">fig</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">8</span><span class="p">))</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">xs_ideal</span><span class="p">,</span> <span class="n">our_func</span><span class="p">(</span><span class="n">xs_ideal</span><span class="p">),</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">ls</span><span class="o">=</span><span class="s">'--'</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s">'Actual Function'</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">xs_samples</span><span class="p">,</span> <span class="n">ys_od</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s">'Noisy Measurements'</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">loc</span><span class="o">=</span><span class="mi">4</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s">'x'</span><span class="p">);</span> <span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s">'y'</span><span class="p">)</span>
+<span class="n">_</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s">'Noisy Samples of a Cubic Function'</span><span class="p">)</span></code></pre></figure>
+
+<p><img src="http://localhost:4000/assets/LS_offet_and_drift_23_0.png" alt="png" /></p>
+
+<p>Yikes! That looks like a mess. We might not think we would have any chance of recovering the original function from these measurements, but we’ll see that correctly modeling the error saves the day.</p>
+
+<p>First, we construct the augmented matrix $\tilde{A}$.</p>
+
+<figure class="highlight"><pre><code class="language-python" data-lang="python"><span class="n">A_tilde</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">([</span>
+    <span class="n">A</span><span class="p">,</span>
+    <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">A</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])[:,</span> <span class="bp">None</span><span class="p">],</span>
+    <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span> <span class="o">+</span> <span class="n">A</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])[:,</span> <span class="bp">None</span><span class="p">]</span>
+<span class="p">],</span> <span class="n">axis</span> <span class="o">=</span> <span class="mi">1</span><span class="p">)</span>
+<span class="k">print</span> <span class="n">A_tilde</span></code></pre></figure>
+
+<figure class="highlight"><pre><code class="language-python" data-lang="python">    <span class="p">[[</span>  <span class="mf">2.49e+00</span>   <span class="mf">6.20e+00</span>   <span class="mf">1.55e+01</span>   <span class="mf">1.00e+00</span>   <span class="mf">1.00e+00</span><span class="p">]</span>
+     <span class="p">[</span>  <span class="mf">1.40e+01</span>   <span class="mf">1.96e+02</span>   <span class="mf">2.75e+03</span>   <span class="mf">1.00e+00</span>   <span class="mf">2.00e+00</span><span class="p">]</span>
+     <span class="p">[</span>  <span class="mf">9.64e+00</span>   <span class="mf">9.29e+01</span>   <span class="mf">8.96e+02</span>   <span class="mf">1.00e+00</span>   <span class="mf">3.00e+00</span><span class="p">]</span>
+     <span class="p">[</span>  <span class="mf">6.97e+00</span>   <span class="mf">4.86e+01</span>   <span class="mf">3.39e+02</span>   <span class="mf">1.00e+00</span>   <span class="mf">4.00e+00</span><span class="p">]</span>
+     <span class="p">[</span> <span class="o">-</span><span class="mf">1.88e+00</span>   <span class="mf">3.53e+00</span>  <span class="o">-</span><span class="mf">6.64e+00</span>   <span class="mf">1.00e+00</span>   <span class="mf">5.00e+00</span><span class="p">]</span>
+     <span class="p">[</span> <span class="o">-</span><span class="mf">1.88e+00</span>   <span class="mf">3.53e+00</span>  <span class="o">-</span><span class="mf">6.65e+00</span>   <span class="mf">1.00e+00</span>   <span class="mf">6.00e+00</span><span class="p">]</span>
+     <span class="p">[</span> <span class="o">-</span><span class="mf">3.84e+00</span>   <span class="mf">1.47e+01</span>  <span class="o">-</span><span class="mf">5.65e+01</span>   <span class="mf">1.00e+00</span>   <span class="mf">7.00e+00</span><span class="p">]</span>
+     <span class="p">[</span>  <span class="mf">1.23e+01</span>   <span class="mf">1.52e+02</span>   <span class="mf">1.87e+03</span>   <span class="mf">1.00e+00</span>   <span class="mf">8.00e+00</span><span class="p">]</span>
+     <span class="p">[</span>  <span class="mf">7.02e+00</span>   <span class="mf">4.93e+01</span>   <span class="mf">3.46e+02</span>   <span class="mf">1.00e+00</span>   <span class="mf">9.00e+00</span><span class="p">]</span>
+     <span class="p">[</span>  <span class="mf">9.16e+00</span>   <span class="mf">8.39e+01</span>   <span class="mf">7.69e+02</span>   <span class="mf">1.00e+00</span>   <span class="mf">1.00e+01</span><span class="p">]</span>
+     <span class="p">[</span> <span class="o">-</span><span class="mf">4.59e+00</span>   <span class="mf">2.11e+01</span>  <span class="o">-</span><span class="mf">9.66e+01</span>   <span class="mf">1.00e+00</span>   <span class="mf">1.10e+01</span><span class="p">]</span>
+     <span class="p">[</span>  <span class="mf">1.44e+01</span>   <span class="mf">2.07e+02</span>   <span class="mf">2.98e+03</span>   <span class="mf">1.00e+00</span>   <span class="mf">1.20e+01</span><span class="p">]</span>
+     <span class="p">[</span>  <span class="mf">1.16e+01</span>   <span class="mf">1.36e+02</span>   <span class="mf">1.58e+03</span>   <span class="mf">1.00e+00</span>   <span class="mf">1.30e+01</span><span class="p">]</span>
+     <span class="p">[</span> <span class="o">-</span><span class="mf">7.53e-01</span>   <span class="mf">5.67e-01</span>  <span class="o">-</span><span class="mf">4.27e-01</span>   <span class="mf">1.00e+00</span>   <span class="mf">1.40e+01</span><span class="p">]</span>
+     <span class="p">[</span> <span class="o">-</span><span class="mf">1.36e+00</span>   <span class="mf">1.86e+00</span>  <span class="o">-</span><span class="mf">2.53e+00</span>   <span class="mf">1.00e+00</span>   <span class="mf">1.50e+01</span><span class="p">]]</span></code></pre></figure>
+
+<p>The standard least squared estimate:</p>
+
+<figure class="highlight"><pre><code class="language-python" data-lang="python"><span class="n">p_ls</span> <span class="o">=</span> <span class="n">inv</span><span class="p">(</span><span class="n">A</span><span class="o">.</span><span class="n">T</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">A</span><span class="p">))</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">A</span><span class="o">.</span><span class="n">T</span><span class="p">)</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">ys_od</span><span class="p">)</span>
+<span class="k">print</span> <span class="n">p_ls</span></code></pre></figure>
+
+<figure class="highlight"><pre><code class="language-python" data-lang="python">    <span class="p">[</span><span class="o">-</span><span class="mf">3.5</span>   <span class="mf">4.51</span> <span class="o">-</span><span class="mf">0.27</span><span class="p">]</span></code></pre></figure>
+
+<p>The least squared estimate using the noise model:</p>
+
+<figure class="highlight"><pre><code class="language-python" data-lang="python"><span class="n">p_ls_plus_noise</span> <span class="o">=</span> <span class="n">inv</span><span class="p">(</span><span class="n">A_tilde</span><span class="o">.</span><span class="n">T</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">A_tilde</span><span class="p">))</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">A_tilde</span><span class="o">.</span><span class="n">T</span><span class="p">)</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">ys_od</span><span class="p">)</span>
+<span class="k">print</span> <span class="n">p_ls_plus_noise</span><span class="p">[:</span><span class="mi">3</span><span class="p">]</span></code></pre></figure>
+
+<figure class="highlight"><pre><code class="language-python" data-lang="python">    <span class="p">[</span> <span class="mf">1.16</span>  <span class="mf">2.86</span> <span class="o">-</span><span class="mf">0.19</span><span class="p">]</span></code></pre></figure>
+
+<p>And we also recover the estimates of $\alpha$ and $\beta$.</p>
+
+<figure class="highlight"><pre><code class="language-python" data-lang="python"><span class="n">p_ls_plus_noise</span><span class="p">[</span><span class="mi">3</span><span class="p">:]</span></code></pre></figure>
+
+<figure class="highlight"><pre><code class="language-python" data-lang="python">    <span class="n">array</span><span class="p">([</span><span class="o">-</span><span class="mf">7.56</span><span class="p">,</span>  <span class="mf">5.57</span><span class="p">])</span></code></pre></figure>
+
+<p>So, we can see that the LS estimate that utilizes the noise model does a much better job of estimating the desired parameters. What about the error? Recall the quantity we are trying to minimize is</p>
+
+<script type="math/tex; mode=display">\begin{align}
+\left\lVert y- Ap\right\rVert_2^2
+\end{align}</script>
+
+<p>So, there are really two errors to consider:</p>
+
+<ul>
+  <li>The value of the cost function we are minimizing via the least squares method. In a real application, this is the only error we could consider</li>
+  <li>The root-mean-square error between the estimated functions and the actual functions, evaluated at the sample points. We are only able to this because we know the function that generated the data</li>
+</ul>
+
+<p>Let’s begin by evaluating the cost function we’ve minimized.</p>
+
+<figure class="highlight"><pre><code class="language-python" data-lang="python"><span class="n">J_ls</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="nb">sum</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">power</span><span class="p">(</span><span class="n">y_od</span> <span class="o">-</span> <span class="n">A</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">p_ls</span><span class="p">),</span> <span class="mi">2</span><span class="p">))</span>
+<span class="n">J_ls_plus_noise</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="nb">sum</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">power</span><span class="p">(</span><span class="n">y_od</span> <span class="o">-</span> <span class="n">A_tilde</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">p_ls_plus_noise</span><span class="p">),</span> <span class="mi">2</span><span class="p">))</span>
+<span class="k">print</span> <span class="s">'Basic LS Error:        {:.3f}'</span><span class="o">.</span><span class="nb">format</span><span class="p">(</span><span class="n">J_ls</span><span class="p">)</span>
+<span class="k">print</span> <span class="s">'Noise model LS Error:  {:.3f}'</span><span class="o">.</span><span class="nb">format</span><span class="p">(</span><span class="n">J_ls_plus_noise</span><span class="p">)</span></code></pre></figure>
+
+<figure class="highlight"><pre><code class="language-python" data-lang="python">    <span class="n">Basic</span> <span class="n">LS</span> <span class="n">Error</span><span class="p">:</span>        <span class="mf">82210.486</span>
+    <span class="n">Noise</span> <span class="n">model</span> <span class="n">LS</span> <span class="n">Error</span><span class="p">:</span>  <span class="mf">55722.231</span></code></pre></figure>
+
+<p>That’s great! By accounting for the error, we drive the cost down by an additional 32%. That certainly seems promising. Now, let’s compare to the oracle (the actual function that generated the data).</p>
+
+<figure class="highlight"><pre><code class="language-python" data-lang="python"><span class="n">x</span> <span class="o">=</span> <span class="n">our_func</span><span class="p">(</span><span class="n">xs_samples</span><span class="p">)</span>
+<span class="n">x_ls</span> <span class="o">=</span> <span class="n">our_func</span><span class="p">(</span><span class="n">xs_samples</span><span class="p">,</span> <span class="n">p1</span><span class="o">=</span><span class="n">p_ls</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">p2</span><span class="o">=</span><span class="n">p_ls</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">p3</span><span class="o">=</span><span class="n">p_ls</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+<span class="n">x_ls_plus_noise</span> <span class="o">=</span> <span class="n">our_func</span><span class="p">(</span><span class="n">xs_samples</span><span class="p">,</span> <span class="n">p1</span><span class="o">=</span><span class="n">p_ls_plus_noise</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">p2</span><span class="o">=</span><span class="n">p_ls_plus_noise</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">p3</span><span class="o">=</span><span class="n">p_ls_plus_noise</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+<span class="n">err_ls</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">x</span> <span class="o">-</span> <span class="n">x_ls</span><span class="p">)</span>
+<span class="n">err_ls_plus_noise</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">x</span> <span class="o">-</span> <span class="n">x_ls_plus_noise</span><span class="p">)</span></code></pre></figure>
+
+<figure class="highlight"><pre><code class="language-python" data-lang="python"><span class="k">print</span> <span class="s">'Basic LS Error:        {:.3f}'</span><span class="o">.</span><span class="nb">format</span><span class="p">(</span><span class="n">err_ls</span><span class="p">)</span>
+<span class="k">print</span> <span class="s">'Noise model LS Error:  {:.3f}'</span><span class="o">.</span><span class="nb">format</span><span class="p">(</span><span class="n">err_ls_plus_noise</span><span class="p">)</span></code></pre></figure>
+
+<figure class="highlight"><pre><code class="language-python" data-lang="python">    <span class="n">Basic</span> <span class="n">LS</span> <span class="n">Error</span><span class="p">:</span>        <span class="mf">120.583</span>
+    <span class="n">Noise</span> <span class="n">model</span> <span class="n">LS</span> <span class="n">Error</span><span class="p">:</span>  <span class="mf">8.427</span></code></pre></figure>
+
+<p>As expected, the method that correctly models the error gets much closer to the oracle.</p>
+
+<p>And finally, visualize the results with another plot:</p>
+
+<figure class="highlight"><pre><code class="language-python" data-lang="python"><span class="n">fig</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">8</span><span class="p">))</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">xs_ideal</span><span class="p">,</span> <span class="n">our_func</span><span class="p">(</span><span class="n">xs_ideal</span><span class="p">),</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">ls</span><span class="o">=</span><span class="s">'--'</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s">'Actual function'</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">xs_ideal</span><span class="p">,</span> <span class="n">our_func</span><span class="p">(</span><span class="n">xs_ideal</span><span class="p">,</span> <span class="n">p1</span><span class="o">=</span><span class="n">p_ls</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">p2</span><span class="o">=</span><span class="n">p_ls</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">p3</span><span class="o">=</span><span class="n">p_ls</span><span class="p">[</span><span class="mi">2</span><span class="p">]),</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">ls</span><span class="o">=</span><span class="s">'--'</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s">'LS estimate'</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">xs_ideal</span><span class="p">,</span> <span class="n">our_func</span><span class="p">(</span><span class="n">xs_ideal</span><span class="p">,</span> <span class="n">p1</span><span class="o">=</span><span class="n">p_ls_plus_noise</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">p2</span><span class="o">=</span><span class="n">p_ls_plus_noise</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">p3</span><span class="o">=</span><span class="n">p_ls_plus_noise</span><span class="p">[</span><span class="mi">2</span><span class="p">]),</span>
+         <span class="n">linewidth</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">ls</span><span class="o">=</span><span class="s">'--'</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s">'LS with error model estimate'</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">xs_samples</span><span class="p">,</span> <span class="n">ys_od</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s">'Noisy Measurements'</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">loc</span><span class="o">=</span><span class="mi">4</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s">'x'</span><span class="p">);</span> <span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s">'y'</span><span class="p">)</span>
+<span class="n">_</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s">'Noisy Samples of a Cubic Function'</span><span class="p">)</span></code></pre></figure>
+
+<p><img src="http://localhost:4000/assets/LS_offet_and_drift_38_0.png" alt="png" /></p>
+
+<p>As a final note, I implemented$\left(A^TA\right)^{-1}A^T$ directly to emphasize the underlying equation, but this is known as the pseudoinverse of $A$ and is implemented in the NumPy linear algebra package as <a href="https://docs.scipy.org/doc/numpy/reference/generated/numpy.linalg.pinv.html">pinv</a>.</p>
+
+<figure class="highlight"><pre><code class="language-python" data-lang="python"><span class="kn">from</span> <span class="nn">numpy.linalg</span> <span class="kn">import</span> <span class="n">pinv</span></code></pre></figure>
+
+<figure class="highlight"><pre><code class="language-python" data-lang="python"><span class="n">np</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span><span class="n">pinv</span><span class="p">(</span><span class="n">A</span><span class="p">),</span> <span class="n">inv</span><span class="p">(</span><span class="n">A</span><span class="o">.</span><span class="n">T</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">A</span><span class="p">))</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">A</span><span class="o">.</span><span class="n">T</span><span class="p">))</span></code></pre></figure>
+
+<figure class="highlight"><pre><code class="language-python" data-lang="python">    <span class="bp">True</span></code></pre></figure>
+
+:ET

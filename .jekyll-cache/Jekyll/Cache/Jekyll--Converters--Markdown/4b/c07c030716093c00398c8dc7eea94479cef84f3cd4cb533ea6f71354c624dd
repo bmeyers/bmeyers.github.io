@@ -1,0 +1,396 @@
+I"X�<p><em>This is based on a problem presented in EE 178 Probabilistic Systems Analysis at Stanford University and the paper “Models for Transcript Quantification from RNA-Seq” by Lior Pachter.</em></p>
+
+<h3 id="introduction">Introduction</h3>
+
+<p>A classic problem from computational biology is that RNA sequencing. RNA transcripts consist of nucleotides (A, G, C, and T) that contain instructions for making proteins in organisms. In this problem, we want to estimate how many of each type of RNA transcript is present in a given cell. <a href="https://en.wikipedia.org/wiki/DNA_sequencing#High-throughput_methods">High through sequencing methods</a> provide data containing <em>reads</em>, which are short, randomly sampled bits of the RNA sequence. By observing the reads, we wish to estimate the distribution of transcripts in the cell, i.e. the fraction of each read to the total number of reads.</p>
+
+<p>We’ll consider the following problem, simplified considerably from reality. We have a set of RNA transcripts that we know the sequense of. We take a number of reads from a cell, which are randomly selected segments of known length from any of the available RNA. We sequence the reads and match them to the full transcripts, allowing us to estimate the distribution of transcripts. If every read was uniquely associated with a single transcript, this would be a fair easy prolem. Instead, our problem is complicated by the fact that individual reads could come from multiple transcripts. In other words, there is <em>ambiguity</em> to the reads, as illustrated in the following figure:</p>
+
+<p><img src="http://localhost:4000/assets/rna1.png" alt="transcripts" /></p>
+
+<p>For instance, “Read 1” might be the sequence <code class="highlighter-rouge">AGACT</code>, which is present on all three transcripts illustrated here.</p>
+
+<p>Now to formalize the problem. We assume that there are $m$ transcripts each of length $\ell_t$, and we take $n$ reads each of length $\ell_r$. Additionally, we assume that within the cell we are testing, the probability of selecting transcript $t$ is $\rho_t$ for $t=1,\ldots,m$. For this to be a valid probability distribution, it must be the case that</p>
+
+<script type="math/tex; mode=display">\sum_{t=1}^{m} \rho_t = 1.</script>
+
+<p>We use the notation that the $i^{\text{th}}$ read comes from a randomly chosen transcript $T_i$, following the distribution $\rho_1,\ldots,\rho_m$. Each read can come from a random position within the selected transcript. The number of possible starting positions within a given transcript is</p>
+
+<script type="math/tex; mode=display">\ell = \ell_t - \ell_r + 1.</script>
+
+<p>So, given a set of reads <script type="math/tex">\left\{R_1,\ldots,R_n\right\}</script> (which we assume to be independent), we estimate the distribution $\rho_1,\ldots,\rho_m$ that is most likely to result in the observed reads. We do this by maximizing the following likelihood function:</p>
+
+<script type="math/tex; mode=display">L\left(\rho_1,\ldots,\rho_m\right) = \prod_{i=1}^n P\left(R_i=r_i;\rho_1,\ldots,\rho_m\right)</script>
+
+<p>We assume that…</p>
+
+<ol>
+  <li>The sequence of nucleotides (A, G, C, T) in each transcipt is known.</li>
+  <li>Each read can only come from at most one location in a transcript.</li>
+</ol>
+
+<h3 id="solving-a-simplier-problem-first">Solving a simplier problem first</h3>
+
+<p>As a warmup, let’s consider the case that there is <em>not</em> ambiguity in the reads. That is, every read can only come from one single transcript, as in the following figure:</p>
+
+<p><img src="http://localhost:4000/assets/rna2.png" alt="transcripts" /></p>
+
+<p>Consider the following: What is the probability that the $i^{\text{th}}$ observed read $R_i$ is a particular sequence $r_i$? In other words, what is $P(R_i=r_i)$? Let $t_i$ be the transcript where sequence $r_i$ occurs, where <script type="math/tex">t_i\in\left\{1,2,\ldots,m\right\}</script>. By the law of total probability,</p>
+
+<script type="math/tex; mode=display">P(R_i=r_i) = \sum_{j=1}^m P(R_i=r_i \cap T_i=j)</script>
+
+<p>However, we know that each sequence can only occur on one transcript so $P(R_i=r_i \cap T_i=j)=0$ when $j \neq t_i$. So, that eleminates all but one term in the sum. Then, we apply the definition of conditional probability as follows:</p>
+
+<script type="math/tex; mode=display">% <![CDATA[
+\begin{align}
+P(R_i=r_i) &= \sum_{j=1}^m P(R_i=r_i \cap T_i=j) \\
+&= P(R_i=r_i \cap T_i=t_i) \\
+&= P(R_i=r_i \mid T_i=t_i)P(T_i=t_i)
+\end{align} %]]></script>
+
+<p>The first term is the conditional probability that $r_i$ is observed, given that transcript $t_i$ was selected. This is straightforward. As previously mentioned, there are $\ell = \ell_t - \ell_r + 1$ possible starting positions within a transcript. Only one of them will result in the observe sequence, so</p>
+
+<script type="math/tex; mode=display">P(R_i=r_i \mid T_i=t_i) = \frac{1}{\ell_t - \ell_r + 1} = \frac{1}{\ell}.</script>
+
+<p>Additonally, the second term is the probability of selecting that particular transcript, so</p>
+
+<script type="math/tex; mode=display">P(T_i=t_i) = \rho_{t_i}.</script>
+
+<p>Bringing this all together, we have:</p>
+
+<script type="math/tex; mode=display">P(R_i=r_i) = \frac{\rho_{t_i}}{\ell}</script>
+
+<p>Okay! Now let’s do a sanity check. Let’s suppose that there are only two possible transcript. What is the maximum likelihood estimate (MLE) of $\rho_1$ and $\rho_2$, assuming that we observe $k$ reads compatible with transcript 1 and $n-k$ reads compatible with transcript 2?</p>
+
+<p>Let’s start by forming the maximum likelihood equation.</p>
+
+<script type="math/tex; mode=display">% <![CDATA[
+\begin{align}
+L(\rho_1, \rho_2) &= \prod_{i=1}^{n}{  P(R_i=r_i;\rho_1, \rho_2)  } \\
+&= \left(\frac{\rho_{1}}{\ell_t - \ell_r +1}\right)^k \left(\frac{\rho_{2}}{\ell_t - \ell_r +1}\right)^{n-k} \\ 
+&= \frac{\rho_{1}^k \rho_{2}^{n-k}}{\left(\ell_t - \ell_r +1\right)^n}
+\end{align} %]]></script>
+
+<p>Where,</p>
+
+<script type="math/tex; mode=display">\ell = \ell_t - \ell_r +1</script>
+
+<p>We can see that $L$ is maximized when its numerator is maximized:</p>
+
+<script type="math/tex; mode=display">\max_{\rho_1}L=\max_{\rho_1}\rho_{1}^k \left(1-\rho_{1}\right)^{n-k}</script>
+
+<p>Take the derivative with respect to $\rho_1$ and set equal to zero:</p>
+
+<script type="math/tex; mode=display">\frac{d}{d \rho_1} \left(\rho_{1}^k \left(1-\rho_{1}\right)^{n-k} \right)= (k-n\rho_1) \rho_1^{k-1}\left(1-\rho_{1}\right)^{n-k-1}=0</script>
+
+<p>The solutions for the above equation are</p>
+
+<script type="math/tex; mode=display">\rho_1 = 0, 1, \frac{k}{n}</script>
+
+<p>And $L$ is maximized for $\rho_1=\frac{k}{n}$.</p>
+
+<p>So,</p>
+
+<script type="math/tex; mode=display">% <![CDATA[
+\begin{align}\hat{\rho}_1 &= \frac{k}{n} \\ \hat{\rho}_2 &= 1 - \frac{k}{n} = \frac{n - k}{n} \end{align} %]]></script>
+
+<p>So, in the simple case that we have two transcripts and no ambiguity in reads, the MLE of the distribution is simply the fraction of observed reads compatible with the given transcript.</p>
+
+<p>By following this pattern (and leaving the rigorous proof to the reader), we can expand this to the case of $m$ transcripts (still with no ambiguity). Assuming that out of $n$ reads, $k_i$ reads are compatible with transcript $i$, such that $\sum_{i=1}^{m}{k_i} = n$, the maximum likelihood estimator of $\rho_1,\ldots,\rho_m$ is</p>
+
+<script type="math/tex; mode=display">\hat{\rho}_i = \frac{k_i}{n},\quad\quad\text{for }i=1,\ldots,m.</script>
+
+<p>Okay, that was a good warm-up. Now on to the real problem…</p>
+
+<h3 id="modeling-the-problem-with-ambiguity">Modeling the problem with ambiguity</h3>
+
+<p>Now, we return to the case that an observable sequence can be present in multiple transcripts. We still assume that each read can occur in at most one location on a transcript. We’ll encode the information about what reads can occur in what transcripts in a <em>compatibility matrix</em>, $A$, where entry $A_{ij}$ is 1 if read $r_i$ can occur in transcript $j$ and 0 otherwise. An example is given below.</p>
+
+<script type="math/tex; mode=display">% <![CDATA[
+A = \left[ \begin{matrix} 1 & 1 & 1 \\ 0 & 1 & 1 \\ 1 & 0 & 1 \\ 1 & 0 & 0 \\ 1 & 1 & 0 \end{matrix}\right] %]]></script>
+
+<p><img src="http://localhost:4000/assets/rna1.png" alt="transcripts" /></p>
+
+<p>So, given an arbitrary compatibility matrix, what is the maximum likelihood expression for $\rho_1,\ldots,\rho_m$? As before, we want to consider the probability of observing a specific read, given a distribution of $\rho$’s.</p>
+
+<script type="math/tex; mode=display">P(R_i=r_i;\rho_1, \ldots, \rho_m) = \sum_{j=1}^m P(R_i=r_i \cap T_i=j)</script>
+
+<p>However, this time, $r_i$ can be associated with multiple possible transcripts, so the sum does not collapse. Instead, we sum over the rows of $A$.</p>
+
+<script type="math/tex; mode=display">P(R_i=r_i;\rho_1, \ldots, \rho_m) = \sum_{j=1}^m A_{ij} P(R_i=r_i \cap T_i=j)</script>
+
+<p>Lets, define the vector $\rho$:</p>
+
+<script type="math/tex; mode=display">\rho = \left[ \begin{matrix} \rho_1 \\ \vdots \\ \rho_m \end{matrix} \right]</script>
+
+<p>Which allows us to put the probability of observing $r_i$ in compact form:</p>
+
+<script type="math/tex; mode=display">% <![CDATA[
+\begin{align}P(R_i=r_i;\rho_1, \ldots, \rho_m) &= \sum_{j=1}^m A_{ij} P(R_i=r_i \cap T_i=j)\\
+&= \sum_{j=1}^m A_{ij} P(R_i=r_i \mid T_i=j)P(T_i=j) \\
+&= \frac{1}{\ell}\sum_{j=1}^m A_{ij} P(T_i=j) \\
+&= \frac{1}{\ell} e_{i}^T A \rho\end{align} %]]></script>
+
+<p>Where $e_{i} \in \mathbf{R}^n$ is a vector with all zeros except for a one in position $i$.</p>
+
+<p>Now, we can form the maximum likelihood function.</p>
+
+<script type="math/tex; mode=display">% <![CDATA[
+\begin{align}L(\rho_1, \ldots \rho_m) &= \prod_{i=1}^{n}{  P(R_i=r_i;\rho_1, \ldots \rho_m)  } \\
+&= \prod_{i=1}^{n} \frac{1}{\ell} e_{i}^T A \rho \\
+&= \frac{1}{\ell^n}\prod_{i=1}^{n} e_{i}^T A \rho \end{align} %]]></script>
+
+<p>Let’s apply this model to the example above, with $m=3$ and $n=5$. There are five terms in the product.</p>
+
+<script type="math/tex; mode=display">% <![CDATA[
+\begin{align}
+e_{1}^T A \rho &= \left[\begin{matrix} 1 & 0& 0 & 0& 0\end{matrix}\right] \left[\begin{matrix} 1 & 1 & 1 \\ 0 & 1 & 1 \\ 1 & 0 & 1 \\ 1 & 0 & 0 \\ 1 & 1 & 0\end{matrix}\right]\left[ \begin{matrix} \rho_1 \\ \rho_2 \\ \rho_3 \end{matrix} \right] \\
+&= \left[\begin{matrix} 1 & 1 & 1 \end{matrix}\right]\left[ \begin{matrix} \rho_1 \\ \rho_2 \\ \rho_3 \end{matrix} \right] \\
+&= \rho_1 + \rho_2 + \rho_3 \\
+e_{2}^T A \rho &= \rho_2 + \rho_3 \\
+e_{3}^T A \rho &= \rho_1 + \rho_3 \\
+e_{4}^T A \rho &= \rho_1 \\
+e_{5}^T A \rho &= \rho_1 + \rho_2
+\end{align} %]]></script>
+
+<p>Which gives us the likelihood equation:</p>
+
+<script type="math/tex; mode=display">L(\rho_1, \ldots, \rho_3) = \frac{1}{\ell^5} (\rho_1 + \rho_2 +\rho_3)(\rho_2 + \rho_3)(\rho_1 + \rho_3)(\rho_1)(\rho_1 + \rho_2)</script>
+
+<p>Using $\rho_1 + \rho_2 + \rho_3 = 1$, maximizing the likelihood is equivalent to maximizing the following.</p>
+
+<script type="math/tex; mode=display">% <![CDATA[
+\begin{align}
+    & (\rho_2 + \rho_3)(\rho_1 + \rho_3)\rho_1(\rho_1 + \rho_2) \\
+    & = (\rho_2 + \rho_3)(1-\rho_2)(1-\rho_2-\rho_3)(1-\rho_3) \\
+        & = (\rho_2 + \rho_3)(1-\rho_2-\rho_3+\rho_2\rho_3)(1-\rho_2-\rho_3)
+\end{align} %]]></script>
+
+<p>We can observe that whatever value is chosen for $\rho_2 + \rho_3=1-\rho_1$, the above equation is maximized when $\rho_2\rho_3$ is maximized. This implies that $\rho_2 = \rho_3$.</p>
+
+<script type="math/tex; mode=display">% <![CDATA[
+\begin{align}
+L(\rho_1, \ldots, \rho_3) &= (2\rho_2)(1-2\rho_2+\rho_2^2)(1-2\rho_2) \\
+&= -4\rho_2^4+1-\rho_2^3-8\rho_2^2+2\rho_2 \\
+\frac{d}{d\rho_2}L(\rho_1, \ldots, \rho_3) &= -16\rho_2^3 + 30\rho_2^2 -16\rho_2 + 2 \\
+&= -2\left(\rho_2-1\right)\left(8\rho_2^2-7\rho_2+1\right)
+\end{align} %]]></script>
+
+<p>So, the likelihood function has a maxima or minima at $\rho_2=1,\frac{7}{16} \pm \frac{\sqrt{17}}{16}$. Plugging these back into the equation, we see that the function is maximized at</p>
+
+<p><script type="math/tex">\hat{\rho}_2 = \hat{\rho}_3 = \frac{7}{16} - \frac{\sqrt{17}}{16}, \;\hat{\rho}_1 = 1-\hat{\rho}_2-\hat{\rho}_3 = \frac{2}{16} + \frac{\sqrt{17}}{8}</script>.</p>
+
+<p>So, in this particular case, we can solve for the probability distribution exactly. What about the general case? Enter the EM algorithm.</p>
+
+<h3 id="the-expectation-maximization-em-algorithm">The expectation-maximization (EM) algorithm</h3>
+
+<p>The <a href="https://en.wikipedia.org/wiki/Expectation%E2%80%93maximization_algorithm">EM algorithm</a> is an iterative method for maximizing a likelihood function over some latent variables $(\rho_1,\ldots,\rho_m)$. In many cases (like this one), it is not tractable to directly maximize the likelihood function. Instead, we alternate between two steps:</p>
+
+<ol>
+  <li>Guess at the values that we want and calculate (E-step)</li>
+  <li>Maximize the expectation with respect to the latent variables.</li>
+</ol>
+
+<p>Let’s try applying the approach to this problem. Suppose for a minute that we observe a read that only appears in transcripts 1 and 4. Further, suppose we knew that $\rho_1=0.1$ and $\rho_2=0.3$. Then the probability, that the read was actually sampled from transcript 1 would be</p>
+
+<script type="math/tex; mode=display">\frac{\text{probability of selecting $t_1$}}{\text{probability of selecting $t_1$ or $t_4$}} = \frac{\rho_1}{\rho_1+\rho_2} = \frac{0.1}{0.1+0.3} = 0.25</script>
+
+<p>In general, the probability of selecting a particular transcript given a read is</p>
+
+<script type="math/tex; mode=display">% <![CDATA[
+\begin{align}
+P(T_i=j \mid R_i=r_i) & = \frac{A_{ij}\rho_j}{\sum_{k=1}^m A_{ik}\rho_k}\\
+    &= \frac{A_{ij}\rho_j}{e_{i}^T A \rho}
+\end{align} %]]></script>
+
+<p>So, if we observe that particular sequence $k$ times, we would assume that the sequence was drawn from transcript $j$</p>
+
+<script type="math/tex; mode=display">kP(T_i=j \mid R_i=r_i)</script>
+
+<p>times. At this point, we ask ourselves: Given the accounting of observations, what is the most likely estimate of $\rho$? We addressed this in the section with the simplifying assumption that there is no ambiguity in reads. As we showed then, the ML estimate of $\rho_j$ is simply the empirical fraction of reads that are compatible with transcript $j$. Therefore, after observing all $n$ reads, we could update the estimate of $\rho_j$ as follows based on a fixed estimate $\bar{\rho}$:</p>
+
+<script type="math/tex; mode=display">% <![CDATA[
+\begin{align}
+\hat{\rho_j} &= \frac{1}{n}\sum_{i=1}^n P(T_i=j \mid R_i=r_i) \\
+&= \frac{1}{n}\sum_{i=1}^n \frac{A_{ij}\bar{\rho}_j}{e_{i}^T A \bar{\rho}}
+\end{align} %]]></script>
+
+<p>To recap, here’s our approach:</p>
+
+<ol>
+  <li>Proportionally assign the reads according to the current guess for $\rho$(E-step)</li>
+  <li>Update the estimates of the parameters based on this allocation (M-step).</li>
+</ol>
+
+<p>Proving that this iterative algorithm converges to the ML estimate is beyond the scope of this post. Instead, we’ll turn to a numerical example.</p>
+
+<p>Let’s start by applying EM to the previous example we worked out by hand.</p>
+
+<figure class="highlight"><pre><code class="language-python" data-lang="python"><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="n">np</span>
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="n">plt</span>
+<span class="o">%</span><span class="n">matplotlib</span> <span class="n">inline</span>
+<span class="kn">import</span> <span class="nn">seaborn</span> <span class="k">as</span> <span class="n">sns</span>
+<span class="n">sns</span><span class="o">.</span><span class="nb">set</span><span class="p">(</span><span class="n">context</span><span class="o">=</span><span class="s">'talk'</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="s">'darkgrid'</span><span class="p">,</span> <span class="n">palette</span><span class="o">=</span><span class="s">'colorblind'</span><span class="p">)</span></code></pre></figure>
+
+<p>We’ll set up a function to calculate $P(T_i=j \mid R_i=r_i)$ for the E-step. In addition, we’ll create a function for calculating the <a href="https://en.wikipedia.org/wiki/Likelihood_function#Log-likelihood">log-likelihood</a> equation.</p>
+
+<script type="math/tex; mode=display">% <![CDATA[
+\begin{align}
+\ell(\rho) &= \log\left[ \frac{1}{\ell^n}\prod_{i=1}^{n} e_{i}^T A \rho \right] \\
+&= -\log\left(\ell^n\right) + \sum_{i=1}^{n} \log\left( e_{i}^T A \rho \right)
+\end{align} %]]></script>
+
+<p>This isn’t necessary for the algorithm, but it allows us to directly observe the algorithm working to maximize the likelihood at each iteration. Why have we switched to log-likelihood? <em>Numerical stability.</em> The likelihood function is the product of $n$ many terms, each of which is between 0 and 1. This means that the likelihood function gets vanishingly small for large $n$. By taking the natural logarithm of the likelihood, we are now summing $n$ negative numbers instead. Because the logarithm is a monotonically increasing function, we know that the log-likelihood function is maximized when the likelihood function is maximized.</p>
+
+<figure class="highlight"><pre><code class="language-python" data-lang="python"><span class="k">def</span> <span class="nf">Pr</span><span class="p">(</span><span class="n">Tj</span><span class="p">,</span> <span class="n">Ri</span><span class="p">,</span> <span class="n">rho</span><span class="p">,</span> <span class="n">compat_matrix</span><span class="p">):</span>
+    <span class="n">rho_j</span> <span class="o">=</span> <span class="n">rho</span><span class="p">[</span><span class="n">Tj</span><span class="p">]</span>
+    <span class="n">ei</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">compat_matrix</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="n">ei</span><span class="p">[</span><span class="n">Ri</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="k">return</span> <span class="n">compat_matrix</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span> <span class="o">*</span> <span class="n">rho_j</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">ei</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">compat_matrix</span><span class="p">,</span> <span class="n">rho</span><span class="p">))</span>
+
+<span class="k">def</span> <span class="nf">log_likelihood</span><span class="p">(</span><span class="n">rho</span><span class="p">,</span> <span class="n">compat_matrix</span><span class="p">):</span>
+    <span class="n">output</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">xrange</span><span class="p">(</span><span class="n">compat_matrix</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
+        <span class="n">output</span> <span class="o">+=</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">compat_matrix</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">rho</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">output</span></code></pre></figure>
+
+<p>Set up the given parameters, the observed compatibility matrix, and the initial estimate of $\rho$.</p>
+
+<figure class="highlight"><pre><code class="language-python" data-lang="python"><span class="n">N_iter</span> <span class="o">=</span> <span class="mi">50</span> <span class="c1"># number of EM iterations
+</span><span class="n">A</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span>
+        <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span>
+        <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span>
+        <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span>
+        <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
+        <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span>
+    <span class="p">])</span>
+<span class="n">n</span> <span class="o">=</span> <span class="n">A</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+<span class="n">m</span> <span class="o">=</span> <span class="n">A</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+<span class="n">rho_est</span> <span class="o">=</span> <span class="p">[</span><span class="mf">1.</span><span class="o">/</span><span class="n">m</span><span class="p">]</span> <span class="o">*</span> <span class="n">m</span></code></pre></figure>
+
+<p>And run the algorithm…</p>
+
+<figure class="highlight"><pre><code class="language-python" data-lang="python"><span class="n">rho_old</span> <span class="o">=</span> <span class="n">rho_est</span>
+<span class="n">Ls</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">N_iter</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+<span class="k">for</span> <span class="n">ix</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">N_iter</span><span class="p">):</span>
+    <span class="n">rho_new</span> <span class="o">=</span> <span class="p">[(</span><span class="mf">1.</span><span class="o">/</span><span class="n">n</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="nb">sum</span><span class="p">([</span><span class="n">Pr</span><span class="p">(</span><span class="n">j</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">rho_old</span><span class="p">,</span> <span class="n">A</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">xrange</span><span class="p">(</span><span class="n">n</span><span class="p">)])</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">xrange</span><span class="p">(</span><span class="n">m</span><span class="p">)]</span>
+    <span class="n">rho_old</span> <span class="o">=</span> <span class="n">rho_new</span>
+    <span class="n">Ls</span><span class="p">[</span><span class="n">ix</span><span class="p">]</span> <span class="o">=</span> <span class="n">log_likelihood</span><span class="p">(</span><span class="n">rho_new</span><span class="p">,</span> <span class="n">A</span><span class="p">)</span>
+
+<span class="n">rho_est</span> <span class="o">=</span> <span class="n">rho_new</span></code></pre></figure>
+
+<p>Here’s the exact result we worked out before:</p>
+
+<figure class="highlight"><pre><code class="language-python" data-lang="python"><span class="n">rho_ml</span> <span class="o">=</span> <span class="p">[</span><span class="mf">2.</span><span class="o">/</span><span class="mi">16</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mi">17</span><span class="p">)</span><span class="o">/</span><span class="mi">8</span><span class="p">,</span> <span class="mf">7.</span><span class="o">/</span><span class="mi">16</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mi">17</span><span class="p">)</span><span class="o">/</span><span class="mi">16</span><span class="p">,</span> <span class="mf">7.</span><span class="o">/</span><span class="mi">16</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mi">17</span><span class="p">)</span><span class="o">/</span><span class="mi">16</span><span class="p">]</span></code></pre></figure>
+
+<p>And now we can compare the results:</p>
+
+<figure class="highlight"><pre><code class="language-python" data-lang="python"><span class="k">print</span> <span class="s">'Exact ML:    {:.5f}, {:.5f}, {:.5f}'</span><span class="o">.</span><span class="nb">format</span><span class="p">(</span><span class="o">*</span><span class="n">rho_ml</span><span class="p">)</span>
+<span class="k">print</span> <span class="s">'EM estimate: {:.5f}, {:.5f}, {:.5f}'</span><span class="o">.</span><span class="nb">format</span><span class="p">(</span><span class="o">*</span><span class="n">rho_est</span><span class="p">)</span></code></pre></figure>
+
+<figure class="highlight"><pre><code class="language-python" data-lang="python">    <span class="n">Exact</span> <span class="n">ML</span><span class="p">:</span>    <span class="mf">0.64039</span><span class="p">,</span> <span class="mf">0.17981</span><span class="p">,</span> <span class="mf">0.17981</span>
+    <span class="n">EM</span> <span class="n">estimate</span><span class="p">:</span> <span class="mf">0.64039</span><span class="p">,</span> <span class="mf">0.17981</span><span class="p">,</span> <span class="mf">0.17981</span></code></pre></figure>
+
+<p>Spot on! Let’s check out the learning curve.</p>
+
+<figure class="highlight"><pre><code class="language-python" data-lang="python"><span class="n">fig</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">8</span><span class="p">,</span><span class="mi">6</span><span class="p">))</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">Ls</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s">'Iteration'</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s">'Log-Likelihood function value'</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span></code></pre></figure>
+
+<p><img src="http://localhost:4000/assets/RNA_sequencing_and_EM_13_0.png" alt="png" /></p>
+
+<p>So, the EM estimate matches the analytical solution, and we can see empirically that the algorithm monotonically increased the likelihood function.</p>
+
+<p>Now, let’s try a larger, randomly generated dataset.</p>
+
+<p>Start by defining some transcripts.</p>
+
+<figure class="highlight"><pre><code class="language-python" data-lang="python"><span class="n">m</span> <span class="o">=</span> <span class="mi">10</span>
+<span class="n">l_t</span> <span class="o">=</span> <span class="mi">100</span>
+<span class="n">transcripts</span> <span class="o">=</span> <span class="p">[</span><span class="s">''</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="s">'AGCT'</span><span class="p">),</span> <span class="n">l_t</span><span class="p">))</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">xrange</span><span class="p">(</span><span class="n">m</span><span class="p">)]</span>
+<span class="n">transcripts</span><span class="p">[:</span><span class="mi">2</span><span class="p">]</span></code></pre></figure>
+
+<figure class="highlight"><pre><code class="language-python" data-lang="python">    <span class="p">[</span><span class="s">'AGAGCCGTACAGACCCCATCTCGAAAGCAGAATCTTGCGGTTACTGAGGGGTAAGATAAGTAGAGTATGGCCCGGCCAGCTTAGCTGCGCATGACATGTT'</span><span class="p">,</span>
+     <span class="s">'CGAGCGGATCTAGCATATACAAGCAGTCAGGTTTTTGAGGCAGGTGGTGAGATTCGTATACGCTTTACAGGTGCTTCCGACACGTGAGCGGTGCAGTGCA'</span><span class="p">]</span></code></pre></figure>
+
+<p>Next, randomly generate the true distribution $\rho_1, \ldots, \rho_m$.</p>
+
+<figure class="highlight"><pre><code class="language-python" data-lang="python"><span class="n">rho</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">rand</span><span class="p">(</span><span class="n">m</span><span class="p">)</span>
+<span class="n">rho</span> <span class="o">/=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">rho</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">bar</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">m</span><span class="p">)</span> <span class="o">+</span> <span class="mf">0.6</span><span class="p">,</span> <span class="n">rho</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="mf">0.8</span><span class="p">)</span></code></pre></figure>
+
+<p><img src="http://localhost:4000/assets/RNA_sequencing_and_EM_17_1.png" alt="png" /></p>
+
+<p>We’ll then pick 1000 random reads of length 5 each.</p>
+
+<figure class="highlight"><pre><code class="language-python" data-lang="python"><span class="n">n</span> <span class="o">=</span> <span class="mi">1000</span> <span class="c1"># Number of reads
+</span><span class="n">l_r</span> <span class="o">=</span> <span class="mi">5</span></code></pre></figure>
+
+<figure class="highlight"><pre><code class="language-python" data-lang="python"><span class="k">def</span> <span class="nf">random_read</span><span class="p">(</span><span class="n">transcripts</span><span class="p">,</span> <span class="n">rho</span><span class="p">,</span> <span class="n">l_r</span><span class="p">):</span>
+    <span class="n">chosen_seq</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="n">transcripts</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="n">rho</span><span class="p">)</span>
+    <span class="n">start_idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">chosen_seq</span><span class="p">)</span> <span class="o">-</span> <span class="n">l_r</span><span class="p">)</span>
+    <span class="n">end_idx</span> <span class="o">=</span> <span class="n">start_idx</span> <span class="o">+</span> <span class="n">l_r</span>
+    <span class="k">return</span> <span class="n">chosen_seq</span><span class="p">[</span> <span class="n">start_idx</span><span class="p">:</span><span class="n">end_idx</span> <span class="p">]</span></code></pre></figure>
+
+<figure class="highlight"><pre><code class="language-python" data-lang="python"><span class="n">reads</span> <span class="o">=</span> <span class="p">[</span><span class="n">random_read</span><span class="p">(</span><span class="n">transcripts</span><span class="p">,</span> <span class="n">rho</span><span class="p">,</span> <span class="n">l_r</span><span class="p">)</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">xrange</span><span class="p">(</span><span class="n">n</span><span class="p">)]</span>
+<span class="k">print</span><span class="s">'First 10 reads...'</span><span class="p">,</span> <span class="n">reads</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">10</span><span class="p">]</span></code></pre></figure>
+
+<figure class="highlight"><pre><code class="language-python" data-lang="python">    <span class="n">First</span> <span class="mi">10</span> <span class="n">reads</span><span class="o">...</span>
+    <span class="p">[</span><span class="s">'TCAGG'</span><span class="p">,</span> <span class="s">'GCCTT'</span><span class="p">,</span> <span class="s">'CGAAA'</span><span class="p">,</span> <span class="s">'GGTGT'</span><span class="p">,</span> <span class="s">'TTATT'</span><span class="p">,</span> <span class="s">'GATAA'</span><span class="p">,</span> <span class="s">'TTCTC'</span><span class="p">,</span> <span class="s">'CTGCC'</span><span class="p">,</span> <span class="s">'GCCAG'</span><span class="p">,</span> <span class="s">'ATTCT'</span><span class="p">]</span></code></pre></figure>
+
+<p>Based on the observed data, construct the alignment matrix.</p>
+
+<figure class="highlight"><pre><code class="language-python" data-lang="python"><span class="k">def</span> <span class="nf">find_all_alignments</span><span class="p">(</span><span class="n">transcripts</span><span class="p">,</span> <span class="n">read</span><span class="p">):</span>
+    <span class="n">n</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">transcripts</span><span class="p">)</span>
+    <span class="n">tmp</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">read</span> <span class="ow">in</span> <span class="n">transcripts</span><span class="p">[</span><span class="n">j</span><span class="p">]:</span>
+            <span class="n">tmp</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="k">return</span> <span class="n">tmp</span></code></pre></figure>
+
+<figure class="highlight"><pre><code class="language-python" data-lang="python"><span class="n">A</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">find_all_alignments</span><span class="p">(</span><span class="n">transcripts</span><span class="p">,</span> <span class="n">read</span><span class="p">)</span> <span class="k">for</span> <span class="n">read</span> <span class="ow">in</span> <span class="n">reads</span><span class="p">])</span>
+<span class="n">sns</span><span class="o">.</span><span class="n">heatmap</span><span class="p">(</span><span class="n">A</span><span class="p">[:</span><span class="mi">10</span><span class="p">])</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s">'First 10 rows of A'</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span></code></pre></figure>
+
+<p><img src="http://localhost:4000/assets/RNA_sequencing_and_EM_24_1.png" alt="png" /></p>
+
+<p>And now, run the EM algorithm, same as before.</p>
+
+<figure class="highlight"><pre><code class="language-python" data-lang="python"><span class="n">N_iter</span> <span class="o">=</span> <span class="mi">100</span> <span class="c1"># number of EM iterations
+# Initialize the initial estimates
+</span><span class="n">rho_old</span> <span class="o">=</span> <span class="p">[</span><span class="mf">1.</span><span class="o">/</span><span class="n">m</span><span class="p">]</span> <span class="o">*</span> <span class="n">m</span>
+<span class="n">Ls</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">N_iter</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+
+<span class="k">for</span> <span class="n">ix</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">N_iter</span><span class="p">):</span>
+    <span class="n">rho_new</span> <span class="o">=</span> <span class="p">[(</span><span class="mf">1.</span><span class="o">/</span><span class="n">n</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="nb">sum</span><span class="p">([</span><span class="n">Pr</span><span class="p">(</span><span class="n">j</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">rho_old</span><span class="p">,</span> <span class="n">A</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">xrange</span><span class="p">(</span><span class="n">n</span><span class="p">)])</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">xrange</span><span class="p">(</span><span class="n">m</span><span class="p">)]</span>
+    <span class="n">rho_old</span> <span class="o">=</span> <span class="n">rho_new</span>
+    <span class="n">Ls</span><span class="p">[</span><span class="n">ix</span><span class="p">]</span> <span class="o">=</span> <span class="n">log_likelihood</span><span class="p">(</span><span class="n">rho_new</span><span class="p">,</span> <span class="n">A</span><span class="p">,</span> <span class="n">scale</span><span class="o">=</span><span class="mf">1e1000</span><span class="p">)</span>
+
+<span class="n">rho_est</span> <span class="o">=</span> <span class="n">rho_new</span></code></pre></figure>
+
+<p>Finally, let’s plot the estimated distribution next to the true distribution.</p>
+
+<figure class="highlight"><pre><code class="language-python" data-lang="python"><span class="n">plt</span><span class="o">.</span><span class="n">bar</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">m</span><span class="p">)</span> <span class="o">+</span> <span class="mf">0.6</span><span class="p">,</span> <span class="n">rho</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s">'blue'</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="mf">0.4</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s">'Real'</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">bar</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">m</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">rho_est</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s">'green'</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="mf">0.4</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s">'Estimated'</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span></code></pre></figure>
+
+<p><img src="http://localhost:4000/assets/RNA_sequencing_and_EM_28_0.png" alt="png" /></p>
+
+<figure class="highlight"><pre><code class="language-python" data-lang="python"><span class="n">fig</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">8</span><span class="p">,</span><span class="mi">6</span><span class="p">))</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">Ls</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s">'Iteration'</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s">'Log-Likelihood function value'</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span></code></pre></figure>
+
+<p><img src="http://localhost:4000/assets/RNA_sequencing_and_EM_29_0.png" alt="png" /></p>
+
+<p>We see that the algorithm has converged on approximately the correct solution!</p>
+
+<h3 id="references">References</h3>
+
+<p>Lior Pachter, “Models for Transcript Quantification from RNA-Seq,” 2011, <a href="https://arxiv.org/abs/1104.3889">arXiv:1104.3889</a>.</p>
+:ET

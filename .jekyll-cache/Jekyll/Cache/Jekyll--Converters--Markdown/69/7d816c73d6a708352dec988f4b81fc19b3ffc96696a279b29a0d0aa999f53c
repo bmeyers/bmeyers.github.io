@@ -1,0 +1,163 @@
+I"�;<p><em>Scraping data from Wikipedia to investigate how much land a utility PV power plant requires</em></p>
+
+<p>I received a message from an old friend this afternoon who said, “Random question. How big of site would you guess is required for a 1 megawatt solar field?” To which I responded, in classic Ph.D. fashion, “Well, that’s complicated.”</p>
+
+<p>As you might guess, the answer depends heavily on the cell, module, and mounting/tracking technologies used at the power plant. Obviously, a plant built with 25% efficient modules will use less land than a plant built with 15% efficient modules for the same overall capacity. You also need to consider design decisions like <a href="https://www.researchgate.net/figure/Ground-coverage-ratio-GCR-is-the-ratio-of-module-area-to-land-area-or-the-ratio-of_fig1_304106060">ground cover ratio</a> and many others to exactly estimate this quantity.</p>
+
+<p>The “Suncyclopedia” <a href="http://www.suncyclopedia.com/en/area-required-for-solar-pv-power-plants/">states that</a> “A simple rule of thumb is to take 100 sqft for every 1kW of solar panels.” But to be honest, I did not trust that number! So, I did a little more digging. As it turns out, Wikipedia helpfully provides a <a href="https://en.wikipedia.org/wiki/List_of_photovoltaic_power_stations">list of photovoltaic power stations that are larger than 200 megawatts in current net capacity</a>, which includes nameplate capacity and total land usage for most of the listed power plants.</p>
+
+<p>Having never actually scraped data from a Wikipedia table before, I figured this was a great opportunity to try out a new Python skill, while doing a bit of light research and data analysis. I used <code class="highlighter-rouge">requests</code> and <code class="highlighter-rouge">Beautiful Soup</code> to extract the table from Wikipedia and <code class="highlighter-rouge">pandas</code> to turn the raw html data into a table for analysis.</p>
+
+<p>We begin with the imports we’ll need:</p>
+
+<figure class="highlight"><pre><code class="language-python" data-lang="python"><span class="kn">import</span> <span class="nn">requests</span>
+<span class="kn">from</span> <span class="nn">bs4</span> <span class="kn">import</span> <span class="n">BeautifulSoup</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="n">pd</span></code></pre></figure>
+
+<p>First things first, set up the HTML request, parse the HTML response, and extract the table.</p>
+
+<figure class="highlight"><pre><code class="language-python" data-lang="python"><span class="n">website_url</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">'https://en.wikipedia.org/wiki/List_of_photovoltaic_power_stations'</span><span class="p">)</span><span class="o">.</span><span class="n">text</span>
+<span class="n">soup</span> <span class="o">=</span> <span class="n">BeautifulSoup</span><span class="p">(</span><span class="n">website_url</span><span class="p">,</span> <span class="s">'lxml'</span><span class="p">)</span>
+<span class="n">my_table</span> <span class="o">=</span> <span class="n">soup</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s">'table'</span><span class="p">,</span> <span class="p">{</span><span class="s">'class'</span><span class="p">:</span> <span class="s">'wikitable sortable'</span><span class="p">})</span></code></pre></figure>
+
+<p>Tables in Wikipedia tend to have references in the cell text, which is annoying if the cell is supposed to have a float value. Finding and removing the references later can be a hassle, because the references are numeric as is the data we are looking for (and I’m not that proficient at regex). Luckily, <code class="highlighter-rouge">BeautifulSoup</code> makes searching and modifying HTML trees exceptionally easy. In the cell below, we search all cells in the table and remove all examples of the <code class="highlighter-rouge">reference</code> class.</p>
+
+<figure class="highlight"><pre><code class="language-python" data-lang="python"><span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">my_table</span><span class="o">.</span><span class="n">findAll</span><span class="p">(</span><span class="s">'tr'</span><span class="p">):</span>
+    <span class="n">cells</span> <span class="o">=</span> <span class="n">row</span><span class="o">.</span><span class="n">findAll</span><span class="p">([</span><span class="s">'th'</span><span class="p">,</span> <span class="s">'td'</span><span class="p">])</span>
+    <span class="k">for</span> <span class="n">cell</span> <span class="ow">in</span> <span class="n">cells</span><span class="p">:</span>
+        <span class="n">references</span> <span class="o">=</span> <span class="n">cell</span><span class="o">.</span><span class="n">findAll</span><span class="p">(</span><span class="s">'sup'</span><span class="p">,</span> <span class="p">{</span><span class="s">'class'</span><span class="p">:</span> <span class="s">'reference'</span><span class="p">})</span>
+        <span class="k">if</span> <span class="n">references</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">ref</span> <span class="ow">in</span> <span class="n">references</span><span class="p">:</span>
+                <span class="n">ref</span><span class="o">.</span><span class="n">extract</span><span class="p">()</span></code></pre></figure>
+
+<p><code class="highlighter-rouge">pandas</code> has all for data I/O needs covered, and comes with an HTML reader. We simply convert the HTML tree to a string and pass it to <code class="highlighter-rouge">pandas</code> to make a data frame out of.</p>
+
+<figure class="highlight"><pre><code class="language-python" data-lang="python"><span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_html</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">my_table</span><span class="p">),</span> <span class="n">header</span><span class="o">=</span><span class="mi">0</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span></code></pre></figure>
+
+<p>Now we just need to clean up some column names and data types. Some of the entries in the <code class="highlighter-rouge">Capacity</code> column contain an asterisk character (<code class="highlighter-rouge">*</code>) as explained on the Wikipedia page. As with the references, we need to remove these characters to isolate the numerica data. The second to last line below strips all non-numeric characters from the <code class="highlighter-rouge">Capacity</code> column.</p>
+
+<figure class="highlight"><pre><code class="language-python" data-lang="python"><span class="n">cols</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">)</span>
+<span class="n">cols</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="o">=</span> <span class="s">'Capacity'</span>
+<span class="n">cols</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span> <span class="o">=</span> <span class="s">'YearlyEnergy'</span>
+<span class="n">cols</span><span class="p">[</span><span class="mi">5</span><span class="p">]</span> <span class="o">=</span> <span class="s">'LandSize'</span>
+<span class="n">df</span><span class="o">.</span><span class="n">columns</span> <span class="o">=</span> <span class="n">cols</span>
+<span class="n">df</span><span class="p">[</span><span class="s">'Capacity'</span><span class="p">]</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="s">'Capacity'</span><span class="p">]</span><span class="o">.</span><span class="nb">str</span><span class="o">.</span><span class="n">extract</span><span class="p">(</span><span class="s">'(</span><span class="err">\</span><span class="s">d+)'</span><span class="p">,</span> <span class="n">expand</span><span class="o">=</span><span class="bp">False</span><span class="p">)</span>
+<span class="n">df</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">astype</span><span class="p">({</span><span class="s">'LandSize'</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="s">'Capacity'</span><span class="p">:</span> <span class="nb">float</span><span class="p">})</span></code></pre></figure>
+
+<p>And now we have successfully converted the table on Wikipedia to a useable data frame!</p>
+
+<figure class="highlight"><pre><code class="language-python" data-lang="python"><span class="n">df</span><span class="o">.</span><span class="n">head</span><span class="p">()</span></code></pre></figure>
+
+<div>
+<style scoped="">
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>Name</th>
+      <th>Country</th>
+      <th>Location</th>
+      <th>Capacity</th>
+      <th>YearlyEnergy</th>
+      <th>LandSize</th>
+      <th>Year</th>
+      <th>Remarks</th>
+      <th>Ref</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>Tengger Desert Solar Park</td>
+      <td>China</td>
+      <td>37°33′00″N 105°03′14″E﻿ / ﻿37.55000°N 105.05389°E</td>
+      <td>1547.0</td>
+      <td>NaN</td>
+      <td>43.0</td>
+      <td>2016.0</td>
+      <td>1,547 MW solar power was installed in Zhongwei...</td>
+      <td>NaN</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>Pavagada Solar Park</td>
+      <td>India</td>
+      <td>14°05′49″N 77°16′13″E﻿ / ﻿14.09694°N 77.27028°E</td>
+      <td>1400.0</td>
+      <td>NaN</td>
+      <td>53.0</td>
+      <td>2019.0</td>
+      <td>In Karnataka state, total planned capacity 2,0...</td>
+      <td>NaN</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>Bhadla Solar Park</td>
+      <td>India</td>
+      <td>27°32′22.81″N 71°54′54.91″E﻿ / ﻿27.5396694°N 7...</td>
+      <td>1365.0</td>
+      <td>NaN</td>
+      <td>40.0</td>
+      <td>2018.0</td>
+      <td>The park is proposed to have a capacity of 2,2...</td>
+      <td>NaN</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>Kurnool Ultra Mega Solar Park</td>
+      <td>India</td>
+      <td>15°40′53″N 78°17′01″E﻿ / ﻿15.681522°N 78.283749°E</td>
+      <td>1000.0</td>
+      <td>NaN</td>
+      <td>24.0</td>
+      <td>2017.0</td>
+      <td>1000 MW operational as of December 2017</td>
+      <td>NaN</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>Datong Solar Power Top Runner Base</td>
+      <td>China</td>
+      <td>40°04′25″N 113°08′12″E﻿ / ﻿40.07361°N 113.1366...</td>
+      <td>1000.0</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>2016.0</td>
+      <td>1 GW Phase I completed in June 2016. Total cap...</td>
+      <td>NaN</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+<p>And now, let’s answer my friend’s original question and check if the simple rule of thumb is correct. The data in the table is in terms of MW and square kilometers, so we’ll need to change our units to kW and square feet to compare to the given rule of thumb.</p>
+
+<figure class="highlight"><pre><code class="language-python" data-lang="python"><span class="n">land_usage</span> <span class="o">=</span> <span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="s">'LandSize'</span><span class="p">]</span> <span class="o">*</span> <span class="mf">1.076e+7</span> <span class="o">/</span> <span class="n">df</span><span class="p">[</span><span class="s">'Capacity'</span><span class="p">]</span> <span class="o">/</span> <span class="mi">1000</span><span class="p">)</span><span class="o">.</span><span class="n">dropna</span><span class="p">()</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span><span class="mi">6</span><span class="p">))</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">hist</span><span class="p">(</span><span class="n">land_usage</span><span class="p">,</span> <span class="n">bins</span><span class="o">=</span><span class="mi">20</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s">'Square feet per kW'</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s">'System Count'</span><span class="p">)</span>
+<span class="n">title1</span> <span class="o">=</span> <span class="s">'Land usage for solar power plants, exracted from:</span><span class="se">\n</span><span class="s">'</span>
+<span class="n">title2</span> <span class="o">=</span> <span class="s">'https://en.wikipedia.org/wiki/List_of_photovoltaic_power_stations'</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="n">title1</span> <span class="o">+</span> <span class="n">title2</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">axvline</span><span class="p">(</span><span class="mi">100</span><span class="p">,</span> <span class="n">ls</span><span class="o">=</span><span class="s">'--'</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s">'r'</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s">'rule of thumb: 100 ft^2/kW'</span><span class="p">)</span>
+<span class="n">med</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">median</span><span class="p">(</span><span class="n">land_usage</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">axvline</span><span class="p">(</span><span class="n">med</span><span class="p">,</span> <span class="n">ls</span><span class="o">=</span><span class="s">':'</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s">'orange'</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s">'median:           {:.0f} ft^2/kW'</span><span class="o">.</span><span class="nb">format</span><span class="p">(</span><span class="n">med</span><span class="p">))</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">();</span></code></pre></figure>
+
+<p><img src="http://localhost:4000/assets/LandUsage_13_0.png" alt="png" /></p>
+
+<p>So, we see that the median value for this set of power plants is more than three times larger than the standard rule of thumb!</p>
+:ET

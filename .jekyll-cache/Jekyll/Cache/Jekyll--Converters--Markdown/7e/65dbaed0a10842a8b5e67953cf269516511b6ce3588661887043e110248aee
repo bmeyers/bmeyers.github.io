@@ -1,0 +1,11 @@
+I"|<p><em>A preview of optimal signal demixing (OSD)</em></p>
+
+<style>
+.tablelines table, .tablelines td, .tablelines th {
+        border: 1px solid black;
+        padding: 10px;
+        }
+</style>
+
+<p>Optimal signal demixing (OSD) is a approach to solving structured  Slides are available <a href="http://localhost:4000/assets/BennetMeyers_Quals_Presentation_2019.pdf">here</a></p>
+:ET
