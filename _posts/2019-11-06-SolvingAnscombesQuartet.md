@@ -105,17 +105,18 @@ for key in grouped.groups.keys():
         y_pred = fit.predict(X[test_ix])
         residuals.append(y[test_ix] - y_pred)
     residuals = np.concatenate(residuals)
-    hold_out_validation.loc[key] = (np.std(residuals), np.mean(residuals))
+    hold_out_validation.loc[key] = (np.linalg.norm(residuals) / np.sqrt(len(residuals)),
+                                    np.mean(residuals))
 hold_out_validation
 {% endhighlight %}
 
 
 ||rmse|mbe|
 |:---: |:---: |:---: |
-|I|1.222849|-0.050753|
-|II|1.360473|-0.145880|
-|III|1.439326|0.208448|
-|IV|1.944016|0.497576|
+|I|1.223902|-0.050753|
+|II|1.368272|-0.145880|
+|III|1.454342|0.208448|
+|IV|2.006684|0.497576|
 {: .tablelines}
 
 
