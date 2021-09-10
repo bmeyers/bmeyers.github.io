@@ -19,4 +19,6 @@ Wow, it's been a while since I've posted here! I'm going to make an effort to st
 - [slides](https://drive.google.com/file/d/1VWOft3Cje1nhyYknWRa-dmnjCGMFzLNS/view?usp=sharing)
 - [video](https://confluence.slac.stanford.edu/display/AI/AI+Seminar?preview=/213897042/309317598/Meyers_Signal_Decomposition.mp4)
 
+I'm curently working on a long paper (~50-70 pages) on this topic that is nearing completion. I hope to have that finished in a month or so!
+
 ![png]({{ "assets/SignalDecompLecture_1.png" | absolute_url}})
