@@ -5,7 +5,7 @@ title: Signal Decomposition Lecture
 tags: [signal processing, convex optimization, optimization, phd progress]
 ---
 
-_My first public lecture on the generalized signal decomposition framework I've been workingo n _
+_My first public lecture on the generalized signal decomposition framework I've been working on_
 
 <style>
 .tablelines table, .tablelines td, .tablelines th {
