@@ -6,6 +6,13 @@ tags: [land usage, pv industry, data scraping, python tricks]
 ---
  _Scraping data from Wikipedia to investigate how much land a utility PV power plant requires_
 
+ <style>
+.tablelines table, .tablelines td, .tablelines th {
+        border: 1px solid black;
+        padding: 10px;
+        }
+</style>
+
 I received a message from an old friend this afternoon who said, "Random question. How big of site would you guess is required for a 1 megawatt solar field?" To which I responded, in classic Ph.D. fashion, "Well, that's complicated." 
 
 As you might guess, the answer depends heavily on the cell, module, and mounting/tracking technologies used at the power plant. Obviously, a plant built with 25% efficient modules will use less land than a plant built with 15% efficient modules for the same overall capacity. You also need to consider design decisions like [ground cover ratio](https://www.researchgate.net/figure/Ground-coverage-ratio-GCR-is-the-ratio-of-module-area-to-land-area-or-the-ratio-of_fig1_304106060) and many others to exactly estimate this quantity.
