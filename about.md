@@ -4,7 +4,7 @@ title: About
 permalink: /about/
 ---
 
-Hello! My name is Bennet Meyers. I'm a Project Scientist with [SLAC National Accelerator Laboratory](https://www6.slac.stanford.edu/) and a PhD candidate in Electrical Engineering at Stanford University, advised by [Stephen Boyd](http://web.stanford.edu/~boyd/). We recently wrote a [paper](https://web.stanford.edu/~boyd/papers/sig_decomp_mprox.html) on signal decomposition ([cross-posted on arXiv](https://arxiv.org/abs/2202.09338)). On December 8, 2022, I successfully [defended my dissertation]({{ "/ThesisDefense/" | absolute_url}}).
+Hello! My name is Bennet Meyers. I'm a Staff Scientist with [SLAC National Accelerator Laboratory](https://www6.slac.stanford.edu/), having completed my PhD in Electrical Engineering at Stanford University in 2023, advised by [Stephen Boyd](http://web.stanford.edu/~boyd/). We recently wrote a [book](https://web.stanford.edu/~boyd/papers/sig_decomp_mprox.html) on signal decomposition ([cross-posted on arXiv](https://arxiv.org/abs/2202.09338)). On December 8, 2022, I successfully [defended my dissertation]({{ "/ThesisDefense/" | absolute_url}}).
 
 Since 2018, I have been running the [PVInsight](https://bmeyers.github.io/PVInsight/) project for [SETO](https://www.energy.gov/eere/solar/solar-energy-technologies-office), developing tools to solve digital operations and maintence problems in the solar PV industy. Some of these tools can be found [here](https://github.com/slacgismo/solar-data-tools).
 
