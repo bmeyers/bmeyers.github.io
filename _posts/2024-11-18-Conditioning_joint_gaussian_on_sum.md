@@ -31,8 +31,8 @@ $$A=I-v\mathbf{1}^T.$$
 
 As asserted above, $(X, S)$ are j-g, and so $(AX,S)$ are similarly j-g by construction for any matrix $A\in\mathbf{R}^{n\times n}$. We will find matrix $A$ and vector $v\in\mathbf{R}^n$ such that
 
-1) $AX$ is independent from $S$, and
-2) $X=AX + Sv$.
+1. $AX$ is independent from $S$, and
+2. $X=AX + Sv$.
 
 If we are able to do this, than the formula above follows from basic definitions. 
 
