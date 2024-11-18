@@ -1,7 +1,7 @@
 ---
 layout: post
 mathjax: true
-title: Conditional distribution of a Jointly Gaussian random vector conditioned on observing the sum of entries
+title: Distribution of a Jointly Gaussian random vector conditioned on observing the sum of entries
 tags: [probability, statistics, gaussian, ee278]
 ---
 
