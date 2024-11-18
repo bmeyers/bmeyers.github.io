@@ -16,7 +16,7 @@ As in the [prior post]({{ "/conditional_distribution_for_jointly_gaussian_random
 
 The distribution of $X$ given the observation that the sum $S=s$ is given by
 
-$$X\mid S=s \sim \mathcal{N}\left(s\mathbf{1} + A\mu, A\Sigma A^T\right),$$
+$$X\mid S=s \sim \mathcal{N}\left(sv + A\mu, A\Sigma A^T\right),$$
 
 where $\mathbf{1}\in\mathbf{R}^n$ is the ones vector,
 
