@@ -34,7 +34,7 @@ As asserted above, $(X, S)$ are j-g, and so $(AX,S)$ are similarly j-g by constr
 1. $AX$ is independent from $S$, and
 2. $X=AX + Sv$.
 
-If we are able to do this, than the formula above follows from basic definitions. 
+If we are able to do this, then the formula above follows from basic definitions. 
 
 $AX$ is independent from $S$ if and only if they are uncorrelated, _i.e._, their covariance matrix is zero:
 
