@@ -14,7 +14,7 @@ As in the [prior post]({{ "/conditional_distribution_for_jointly_gaussian_random
 
 ### The Formula
 
-The distribution of $X$ given the observation of that the sum $S=s$ is given by
+The distribution of $X$ given the observation that the sum $S=s$ is given by
 
 $$X\mid S=s \sim \mathcal{N}\left(s\mathbf{1} + A\mu, A\Sigma A^T\right),$$
 
