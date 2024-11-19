@@ -9,7 +9,7 @@ _This is based on lectures from EE 278 Statistical Signal Processing at Stanford
 
 ### Background: Jointly Gaussian Random Vectors
 
-Jointly Gaussian random vectors are generalizations of the one-dimensional Gaussian (or normal) distribution to higher dimensions. Specifically, a vector is said to be jointy Gaussian (JG) if each element of the vector is a linear combination of some number of i.i.d. standard, normal distributions (Gaussians with zero-mean and a variance of one) plus a bias term. In other words, if $X\in\mathbf{R}^n$ is a JG r.v., then
+Jointly Gaussian random vectors are generalizations of the one-dimensional Gaussian (or normal) distribution to higher dimensions. Specifically, a vector is said to be jointly Gaussian (j-g) if each element of the vector is a linear combination of some number of i.i.d. standard, normal distributions (Gaussians with zero-mean and a variance of one) plus a bias term. In other words, if $X\in\mathbf{R}^n$ is a JG r.v., then
 
 $$
 X_i = \mu_i + \sum_{j=1}^m a_{ij}W_j,\quad\quad \forall\;i=1,\ldots,n,
@@ -33,11 +33,11 @@ f_X(x_1,\ldots,x_n) = (2\pi)^{-n/2}\left\lvert\Sigma\right\rvert^{-1/2}\exp\left
 \end{equation}
 $$
 
-Finally, we say that two vectors $X\in\mathbf{R}^n$ and $Y\in\mathbf{R}^m$ are Jointly Gaussian, if each individual vector is Joinly Gaussian, and the combined vector $\left[\begin{matrix} X & Y \end{matrix}\right]^T\in\mathbf{R}^{(n+m)}$ is also Joinly Gaussian.
+Finally, we say that two vectors $X\in\mathbf{R}^n$ and $Y\in\mathbf{R}^m$ are j-g, if each individual vector is j-g, and the combined vector $\left[\begin{matrix} X & Y \end{matrix}\right]^T\in\mathbf{R}^{(n+m)}$ is also j-g.
 
 ### Conditional distributions
 
-In probability theory and statistical estimation, we often encounter problems where we have two Jointly Gaussian random vectors, and we observe a realization of one of the vectors. Based on this observation, we want to know the location and covariance of the remaining vector. This is called finding the "conditional distribution" of the unobserved vector. There is a [famous formula](https://en.wikipedia.org/wiki/Multivariate_normal_distribution#Conditional_distributions) that states if $X\in\mathbf{R}^n$ and $Y\in\mathbf{R}^m$ are Jointly Gaussian random vectors, with the joint distribution
+In probability theory and statistical estimation, we often encounter problems where we have two j-g random vectors, and we observe a realization of one of the vectors. Based on this observation, we want to know the location and covariance of the remaining vector. This is called finding the "conditional distribution" of the unobserved vector. There is a [famous formula](https://en.wikipedia.org/wiki/Multivariate_normal_distribution#Conditional_distributions) that states if $X\in\mathbf{R}^n$ and $Y\in\mathbf{R}^m$ are j-g random vectors, with the joint distribution
 
 $$
 \left[\begin{matrix} X \\ Y \end{matrix}\right] \sim \mathcal{N}\left(\left[\begin{matrix} \mu_X \\ \mu_Y \end{matrix}\right], \left[\begin{matrix} \Sigma_{X} & \Sigma_{XY}\\ \Sigma_{YX} & \Sigma_{Y} \end{matrix}\right]\right),
@@ -63,13 +63,13 @@ But, it turns out there's a better way! Jointly Gaussian random vectors have the
 
 ### The Proof
 
-Let $x\in\mathbf{R}^n$ and $y\in\mathbf{R}^m$ be jointly Gaussian random vectors. (Note, we are dropping the convention of distinguishing between a random vector $X$ and its realization $x$ for ease of notation.) The joint distribution is given as:
+Let $x\in\mathbf{R}^n$ and $y\in\mathbf{R}^m$ be j-g random vectors. (Note, we are dropping the convention of distinguishing between a random vector $X$ and its realization $x$ for ease of notation.) The joint distribution is given as:
 
 $$
 \left[\begin{matrix} x \\ y \end{matrix}\right] \sim \mathcal{N}\left(\left[\begin{matrix} \mu_x \\ \mu_y \end{matrix}\right], \left[\begin{matrix} \Sigma_{x} & \Sigma_{xy}\\ \Sigma_{yx} & \Sigma_{y} \end{matrix}\right]\right)
 $$
 
-Let $\tilde{x}=x-\mu_x$ and $\tilde{y}=y-\mu_y$ be the mean-centered versions of $x$ and $y$. Next, introduce $z\triangleq \tilde{x}-A\tilde{y}$. Note that $\mathsf{E}[z]=0$ by construction because $\tilde{x}$ and $\tilde{y}$ are both zero-mean. We can then choose $A$ such that $z$ and $\tilde{y}$ are uncorrelated. Because $z$ and $\tilde{y}$ are also jointly Gaussian, being uncorrelated implies that they are independent. We find $A$ by setting $\mathsf{Cov}(z,\tilde{y})=\mathsf{E}\left[z\tilde{y}\right] =0$ and solving for $A$.
+Let $\tilde{x}=x-\mu_x$ and $\tilde{y}=y-\mu_y$ be the mean-centered versions of $x$ and $y$. Next, introduce $z\triangleq \tilde{x}-A\tilde{y}$. Note that $\mathsf{E}[z]=0$ by construction because $\tilde{x}$ and $\tilde{y}$ are both zero-mean. We can then choose $A$ such that $z$ and $\tilde{y}$ are uncorrelated. Because $z$ and $\tilde{y}$ are also j-g, being uncorrelated implies that they are independent. We find $A$ by setting $\mathsf{Cov}(z,\tilde{y})=\mathsf{E}\left[z\tilde{y}\right] =0$ and solving for $A$.
 
 $$
 \begin{align*}
