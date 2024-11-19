@@ -7,6 +7,8 @@ tags: [probability, statistics, gaussian, ee278]
 
 _This is based on lectures from EE 278 Statistical Signal Processing at Stanford University_
 
+[Note: If the math notation is not rendering correctly, try following the steps described [here](https://physics.meta.stackexchange.com/a/14409) to set your MathJax renderer to "Common HTML".]
+
 ### Background: Jointly Gaussian Random Vectors
 
 Jointly Gaussian random vectors are generalizations of the one-dimensional Gaussian (or normal) distribution to higher dimensions. Specifically, a vector is said to be jointly Gaussian (j-g) if each element of the vector is a linear combination of some number of i.i.d. standard, normal distributions (Gaussians with zero-mean and a variance of one) plus a bias term. In other words, if $X\in\mathbf{R}^n$ is a JG r.v., then

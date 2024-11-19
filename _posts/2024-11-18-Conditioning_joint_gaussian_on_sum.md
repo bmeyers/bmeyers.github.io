@@ -6,6 +6,8 @@ tags: [probability, statistics, gaussian, ee278]
 ---
 
 _This is a follow-up to the [previous post]({{ "/conditional_distribution_for_jointly_gaussian_random_vectors/" | absolute_url}}) on conditioning a jointly Gaussian probability distribution on partial observations_
+
+[Note: If the math notation is not rendering correctly, try following the steps described [here](https://physics.meta.stackexchange.com/a/14409) to set your MathJax renderer to "Common HTML".]
 ### Setting
 
 Let $X$ be a jointly Gaussian (j-g) random vector with mean $\mu\in\mathbf{R}^n$ and covariance matrix $\Sigma\in\mathbf{R}^{n\times n}$, such that $X\sim\mathcal{N}(\mu, \Sigma)$, and let $S$ be the sum of the entries of $X$. We are interested in the setting where we wish to update our belief about the distribuition of $X$ given our observation that the sum equals a specific value, $S=s$.
