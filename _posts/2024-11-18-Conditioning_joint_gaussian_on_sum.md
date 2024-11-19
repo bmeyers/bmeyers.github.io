@@ -66,3 +66,7 @@ v &= \frac{1}{\mathbf{1}^T \Sigma \mathbf{1}}\Sigma\mathbf{1},
 $$
 
 thus proving the first result. 
+
+### Discussion
+
+Note that both $v$ and $A$ do not depend at all on $s$ and can be pre-calculated. Also, because $\Sigma$ is positive-semidefinite, the entries of $v$ are all on the interval $[0,1]$. $A$ has rank $n-1$ with exactly one negative eigenvalue, and so the covariance is always shrunk, but in a non-obvious ways that depends on the original covariance matrix.
