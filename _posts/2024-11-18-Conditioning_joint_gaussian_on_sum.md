@@ -20,14 +20,13 @@ The distribution of $X$ given the observation that the sum $S=s$ is given by
 
 $$X\mid S=s \sim \mathcal{N}\left(sv + A\mu, A\Sigma A^T\right),$$
 
-where $\mathbf{1}\in\mathbf{R}^n$ is the ones vector,
+where,
 
 $$v = \frac{1}{\mathbf{1}^T \Sigma \mathbf{1}}\Sigma\mathbf{1},$$
 
-and
+$$A=I-v\mathbf{1}^T,$$
 
-$$A=I-v\mathbf{1}^T.$$
-
+and $\mathbf{1}\in\mathbf{R}^n$ is the ones vector.
 
 ### Proof
 
