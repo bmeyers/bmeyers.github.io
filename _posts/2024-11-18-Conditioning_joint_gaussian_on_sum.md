@@ -75,3 +75,7 @@ thus proving the first result.
 Note that both $v$ and $A$ do not depend at all on $s$ and can be pre-calculated. The entries of $v$ are all on the interval $[0,1]$ and, in fact, form a simplex (their values sum to $1$). The posterior mean is always updated to be exactly consistent with the observed sum.
 
 Assuming $\Sigma$ is rank $n$, $A$ has rank $n-1$ with exactly one "near-zero" eigenvalue. Additionally, the updated covariance become degenerate (singular), also with rank $n-1$. The updated covariance matrix is always "shrunk," so that the uncertainty is reduced in the posterior distribution.
+
+#### See also
+
+<sub><sup>[https://math.stackexchange.com/a/2942689](https://math.stackexchange.com/a/2942689)</sup></sub>
