@@ -78,4 +78,5 @@ Assuming $\Sigma$ is rank $n$, $A$ has rank $n-1$ with exactly one "near-zero" e
 
 #### See also
 
-<sub><sup>[https://math.stackexchange.com/a/2942689](https://math.stackexchange.com/a/2942689)</sup></sub>
+<sub><sup>[https://math.stackexchange.com/a/2942689](https://math.stackexchange.com/a/2942689)</sup></sub>\
+<sub><sup>[https://stanford.edu/class/ee363/lectures/estim.pdf](https://stanford.edu/class/ee363/lectures/estim.pdf)</sup></sub>
