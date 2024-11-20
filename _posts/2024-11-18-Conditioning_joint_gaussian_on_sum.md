@@ -74,7 +74,7 @@ thus proving the first result.
 
 Note that both $v$ and $A$ do not depend at all on $s$ and can be pre-calculated. The entries of $v$ are all on the interval $[0,1]$ and, in fact, form a simplex (their values sum to $1$). The posterior mean is always updated to be exactly consistent with the observed sum.
 
-Assuming $\Sigma$ is rank $n$, $A$ has rank $n-1$ with exactly one "near-zero" eigenvalue. Additionally, the updated covariance become degenerate (singular), also with rank $n-1$. The updated covariance matrix is always "shrunk," so that the uncertainty is reduced in the posterior distribution.
+The updated covariance matrix is always "shrunk," _i.e._, $\Sigma - A\Sigma A^T \succeq 0$, so that the uncertainty is reduced in the posterior distribution. Assuming $\Sigma$ is rank $n$, $A$ has rank $n-1$, and the updated covariance becomes degenerate (singular), also with rank $n-1$. This degeneracy is important! It establishes a subspace in $\mathbf{R}^n$ (the nullspace of the updated covariance matrix) along which our posterior distribution has no variance. This subspace is exactly $\mathbf{1}\in\mathbf{R}^n$. That means the posterior distribution has no variability in the sum of entries. Any sample of this posterior distribution will have the exact same sum!
 
 #### See also
 
