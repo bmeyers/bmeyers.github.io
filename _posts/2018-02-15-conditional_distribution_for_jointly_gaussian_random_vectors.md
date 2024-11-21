@@ -94,7 +94,7 @@ $$
 &= \mathsf{Cov}(z) \\
 &= \mathsf{E}\left[zz^T\right] \\
 &= \mathsf{E}\left[\left(\tilde{x}-A\tilde{y}\right)\left(\tilde{x}^T-\tilde{y}^TA^T\right)\right] \\
-&= \mathsf{E}\left[\tilde{x}\tilde{x}^T + \tilde{x}\tilde{y}^TA^T -A\tilde{y}\tilde{x}^T +A\tilde{y}\tilde{y}^TA^T\right] \\
+&= \mathsf{E}\left[\tilde{x}\tilde{x}^T - \tilde{x}\tilde{y}^TA^T -A\tilde{y}\tilde{x}^T +A\tilde{y}\tilde{y}^TA^T\right] \\
 &= \Sigma_{x}-\Sigma_{xy}A^T -A\Sigma_{yx} +A\Sigma_{y}A^T \\
 &= \Sigma_{x}-\Sigma_{xy}\Sigma_{y}^{-1}\Sigma_{xy}^T -\Sigma_{xy}\Sigma_{y}^{-1}\Sigma_{yx} +\Sigma_{xy}\Sigma_{y}^{-1}\Sigma_{y}\Sigma_{y}^{-1}\Sigma_{xy}^T \\
 &= \Sigma_{x}-\Sigma_{xy}\Sigma_{y}^{-1}\Sigma_{xy}^T
