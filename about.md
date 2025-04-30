@@ -11,7 +11,9 @@ I completed my PhD in Electrical Engineering at Stanford University in 2023, adv
 
 Since 2018, I have been running the [PVInsight](https://bmeyers.github.io/PVInsight/) project for [SETO](https://www.energy.gov/eere/solar/solar-energy-technologies-office), developing tools to solve digital operations and maintence problems in the solar PV industy. Some of these tools can be found [here](https://github.com/slacgismo/solar-data-tools).
 
-If you like what you see, feel free to contact me!
+Since 2024, I have been running the REGROW (renewable energy generator risk under outlier weather) project for the [Office of Electricity Grid Controls Division](https://www.energy.gov/oe/our-organization). In this project, we are modeling severe weather and the adverse impacts on renewable generation and grid operations. We are developing renewable probabilistic risk forecasting models and robust battery planning and control methods to handle these outlier weather conditions.
+
+Both these projects are currently active and ongoing. If you like what you see, feel free to contact me!
 
 ### Papers and code
 
