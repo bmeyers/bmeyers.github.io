@@ -4,23 +4,28 @@ title: About
 permalink: /about/
 ---
 
-Hello! My name is Bennet Meyers. I'm a Senior Researcher with the [National Laboratory of the Rockies](https://www.nlr.gov) (previously known as NREL) and an Adjunct Professor in [Electrical Engineering](https://ee.stanford.edu) at [Stanford University](https://www.stanford.edu). My research is focused on mathematical optimization for signal processing, estimation, and control with applications in energy. I am particularly interested in the large-scale management and grid integration of renewable power generation. I am also interested in auditable, computationally efficient algorithms and the development of so-called "white-box" machine learning approaches.
+I'm Bennet Meyers, a Senior Researcher at the [National Laboratory of the Rockies](https://www.nlr.gov) (formerly NREL) and an Adjunct Professor in [Electrical Engineering](https://ee.stanford.edu) at [Stanford University](https://www.stanford.edu).
 
+I use mathematical optimization for signal processing, probabilistic forecasting, and control in electric power systems. I develop methods that can scale from a single site to a regional power grid while keeping estimates and forecasts traceable to the measurements and assumptions behind them.
 
-I completed my PhD in Electrical Engineering at Stanford University in 2023, advised by [Stephen Boyd](http://web.stanford.edu/~boyd/). We recently wrote a [book](https://web.stanford.edu/~boyd/papers/sig_decomp_mprox.html) on signal decomposition ([publisher's page](https://www.nowpublishers.com/article/Details/SIG-122)). On December 8, 2022, I successfully [defended my dissertation]({{ "/ThesisDefense/" | absolute_url}}).
+I earned my PhD in Electrical Engineering at Stanford in 2023. My advisor, [Stephen Boyd](https://web.stanford.edu/~boyd/), and I wrote [Signal Decomposition Using Masked Proximal Operators](https://web.stanford.edu/~boyd/papers/sig_decomp_mprox.html), a book about separating a measured signal into components such as trends and periodic patterns ([publisher's page](https://www.nowpublishers.com/article/Details/SIG-122)). I [defended my dissertation]({{ "/ThesisDefense/" | absolute_url}}) in December 2022.
 
-Since 2018, I have been running the [PVInsight](https://bmeyers.github.io/PVInsight/) project for [SETO](https://www.energy.gov/eere/solar/solar-energy-technologies-office), developing tools to solve digital operations and maintence problems in the solar PV industy. Some of these tools can be found [here](https://github.com/slacgismo/solar-data-tools).
+From 2018 to 2026, I led [PVInsight](https://bmeyers.github.io/PVInsight/), a U.S. Department of Energy project to help solar operators understand how their systems perform. We developed [Solar Data Tools](https://solar-data-tools.readthedocs.io/), an open-source Python library for analyzing solar power measurements. Our [software paper](https://doi.org/10.21105/joss.08478) describes the library, and our [Phase 2 final technical report](https://doi.org/10.66816/tp4471481) summarizes what we learned.
 
-Since 2024, I have been running the REGROW (renewable energy generator risk under outlier weather) project for the [Office of Electricity Grid Controls Division](https://www.energy.gov/oe/our-organization). In this project, we are modeling severe weather and the adverse impacts on renewable generation and grid operations. We are developing renewable probabilistic risk forecasting models and robust battery planning and control methods to handle these outlier weather conditions.
+I continue this work through the [PV Fleet Performance Data Initiative](https://www.nlr.gov/pv/fleet-performance-data-initiative), a program of DOE's [Integrated Energy Systems Office](https://www.energy.gov/cmei/systems/integrated-energy-systems-office). I develop and support signal decomposition methods in two parts of the fleet analysis pipeline. Solar Data Tools works from measured power output alone. In [RdTools](https://github.com/NatLabRockies/rdtools/pull/518), I start with daily energy production that has been normalized using engineering models and weather data. Decomposing that series helps us estimate long-term degradation and losses from soiling.
 
-Both these projects are currently active and ongoing. If you like what you see, feel free to contact me!
+Since 2024, I've led REGROW (resilient energy generator risk under outlier weather) for the [Office of Electricity Grid Controls Division](https://www.energy.gov/oe/our-organization). We forecast how much renewable power will be available during extreme weather and quantify the uncertainty in those forecasts. A central question is how best to charge and discharge batteries when a rare weather event could limit generation for days. We're developing [CVXOPF](https://github.com/cvxgrp/cvxopf) to study how transmission constraints affect those decisions across the grid.
 
-### Papers and code
+### Other selected work
 
-An up-to-date list of my papers is available on [Google Scholar](https://scholar.google.com/citations?hl=en&user=zyJpVssAAAAJ&view_op=list_works&sortby=pubdate). Related software and code is available on [GitHub](https://github.com/bmeyers/).
+- [PV Fleet Modeling via Smooth Periodic Gaussian Copula](https://stanford.edu/~boyd/papers/pv_flt_mod_spgc.html). Mehmet G. Ogut, Bennet Meyers, and Stephen P. Boyd. IEEE Photovoltaic Specialists Conference, 2023. We modeled how power output at different sites varies together over time and used the model to forecast generation, fill gaps in measurements, and detect anomalies.
+- [Interpretable Net Load Forecasting Using Smooth Multiperiodic Features](https://web.stanford.edu/~boyd/papers/multiperiodic_forecasting.html). Giray Ogut, Bennet Meyers, and Stephen Boyd. April 2024 manuscript. Our day-ahead model captures how daily net-load patterns vary by weekday and season. It estimates quantiles for individual hours and generates plausible load trajectories for a full day. The [notebook and data](https://github.com/cvxgrp/smooth_multiperiodic_forecasting_experiments) reproduce our experiments on hourly net load in Rhode Island.
+- [TSGAM](https://github.com/cvxgrp/tsgam) extends our work on signal decomposition to time-series generalized additive models. With Nimish Telang and David Chassin, I use these models to separate temperature effects from daily and seasonal patterns in electricity demand and to forecast load from those components.
+- [cvx-sd-skill](https://github.com/cvxgrp/cvx-sd-skill) includes the `signaldecomp` Python library for building convex signal decomposition models in CVXPY, along with a coding-agent skill and worked examples for fitting and checking those models.
+- [Convex Optimization with Smart Grid Examples](https://www.osti.gov/biblio/3018252). Stephen Boyd and Bennet Meyers. In this 2025 IEEE conference talk, we show how to formulate and solve four power-system problems in CVXPY.
 
+You can find more of my papers on [Google Scholar](https://scholar.google.com/citations?hl=en&user=zyJpVssAAAAJ&view_op=list_works&sortby=pubdate) and my software on [GitHub](https://github.com/bmeyers/).
 
+### Contact
 
-### Contact me
-
-My email address is `bennet.meyersim [at] nlr [dot] gov` or `bennetm [at] stanford [dot] edu`. If I do not respond right away, please try again, I probably just missed your message. You are welcome to try my Twitter or LinkedIn, which are linked below, but I generally don't respond to cold messages there.
+You can reach me by email at `bennet.meyersim [at] nlr [dot] gov` or `bennetm [at] stanford [dot] edu`. If I miss your message, feel free to follow up. I rarely respond to cold messages on Twitter or LinkedIn.
